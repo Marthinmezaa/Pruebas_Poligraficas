@@ -1,8 +1,6 @@
-from database import conectar
 from database import conectar, crear_tablas
 
-conn = conectar()
-conn.close
+PRECIO_POR_PRUEBA = 100000 # guaranies (ejemplo)
 
 # -----------------------------
 # Mostrar menu
@@ -28,7 +26,7 @@ def agg_prueba():
         break
 
     while True:
-        cantidad_dia = int(input('Ingrese la cantidad de pruebas del dia: ').strip())
+        cantidad_dia = int(input('\nIngrese la cantidad de pruebas del dia: ').strip())
         if not cantidad_dia:
             print('Debe agregar una cantidad de pruebas diaria (1 al 6).')
             continue
@@ -58,12 +56,35 @@ def agg_prueba():
     print('Prueba cargada (por ahora solo en memoria).')
     print(fecha_test, cantidad_dia, legajo_numero, tipo_prueba, empresa)
 
+    total = cantidad_dia * PRECIO_POR_PRUEBA
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        INSERT INTO pruebas (fecha, legajo, tipo_prueba, localidad, cantidad, total)
+        VALUES (?, ?, ?, ?, ?, ?)
+    ''', (
+        fecha_test,
+        legajo_numero,
+        tipo_prueba,
+        'pendiente',
+        cantidad_dia,
+        total
+    ))
+
+    conn.commit()
+    conn.close()
+
+    print('\nPrueba guardada en la base de datos.')
+    print(f'\nTotal a cobrar: {total} Gs.')
+
 # -----------------------------
 # Main
 # -----------------------------
 def main():
     crear_tablas()
-    
+
     while True:
         mostrar_menu()
         option = input('\nSeleccione una opcion: ').lower().strip()
