@@ -1,6 +1,31 @@
 from database import conectar, crear_tablas
+from datetime import date
 
 PRECIO_POR_PRUEBA = 100000 # guaranies (ejemplo)
+
+# -----------------------------
+# Entradas seguras
+# -----------------------------
+def pedir_texto(mensaje):
+    while True:
+        valor = input(mensaje).strip()
+        if valor:
+            return valor
+        print('No puede estar vacio.')
+
+def pedir_entero(mensaje, minimo=None, maximo=None):
+    while True:
+        try:
+            valor = int(input(mensaje).strip())
+            if minimo is not None and valor < minimo:
+                print(f'Debe ser >= {minimo}')
+                continue
+            if maximo is not None and valor > maximo:
+                print(f'Debe ser <= {maximo}')
+                continue
+            return valor
+        except ValueError:
+            print('Ingrese numero valido.')
 
 # -----------------------------
 # Mostrar menu
@@ -18,36 +43,10 @@ def mostrar_menu():
 # [A] Agregar prueba
 # -----------------------------
 def agg_prueba():
-    while True:
-        fecha_test = input('\nFecha de test (DD/MM/YYY): ').strip()
-        if not fecha_test:
-            print('\nDebe agregar una fecha.')
-            continue
-        break
-
-    while True:
-        cantidad_dia = int(input('\nIngrese la cantidad de pruebas del dia: ').strip())
-        if not cantidad_dia:
-            print('Debe agregar una cantidad de pruebas diaria (1 al 6).')
-            continue
-        break
-
-    while True:
-        legajo_numero = input('\nIngrese numero de legajo: ').strip()
-        if not legajo_numero:
-            print('\nPorfavor agrege un numero de legajo.')
-            continue
-        break
-
-    while True:    
-        tipo_prueba = input('\nTipo de test (Pre, Rut, Post)?: ').strip().lower()
-        if not tipo_prueba:
-            print('\nPor favor inserte el tipo de test')
-            continue
-        break
-
-    print('Prueba cargada (por ahora solo en memoria).')
-    print(fecha_test, cantidad_dia, legajo_numero, tipo_prueba)
+    fecha_test = date.today().isoformat()
+    cantidad_dia = pedir_entero('\nCantidad de pruebas del dia (1 a 6): ', 1, 6)
+    legajo_numero = pedir_texto('Numero de legajo: ')
+    tipo_prueba = pedir_texto('Tipo de prueba (PRE, RUT, POST): ').lower()
 
     total = cantidad_dia * PRECIO_POR_PRUEBA
 
@@ -121,7 +120,7 @@ def main():
 
     while True:
         mostrar_menu()
-        option = input('\nSeleccione una opcion: ').lower().strip()
+        option = pedir_texto('\nSeleccione opcion: ').lower()
 
         if option == 's':
             print('\nSaliendo del programa...')
