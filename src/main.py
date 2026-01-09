@@ -1,3 +1,8 @@
+from database import conectar
+
+conn = conectar()
+conn.close
+
 # -----------------------------
 # Show menu
 # -----------------------------
@@ -18,6 +23,13 @@ def add_test():
         date_test = input('\nFecha de test (DD/MM/YYY): ').strip()
         if not date_test:
             print('\nDebe agregar una fecha.')
+            continue
+        break
+
+    while True:
+        number_day = int(input('Ingrese la cantidad de pruebas del dia: ').strip())
+        if not number_day:
+            print('Debe agregar una cantidad de pruebas diaria (1 al 6).')
             continue
         break
 
@@ -43,7 +55,7 @@ def add_test():
         break
 
     print('Prueba cargada (por ahora solo en memoria).')
-    print(date_test, legajo_number, type_test, company)
+    print(date_test, number_day, legajo_number, type_test, company)
 
 # -----------------------------
 # Main
