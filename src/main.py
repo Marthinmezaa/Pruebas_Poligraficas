@@ -46,15 +46,8 @@ def agg_prueba():
             continue
         break
 
-    while True:
-        empresa = input('\nCual es la empresa?: ').strip().lower()
-        if not empresa:
-            print('\nPorfavor agregue una empresa.')
-            continue
-        break
-
     print('Prueba cargada (por ahora solo en memoria).')
-    print(fecha_test, cantidad_dia, legajo_numero, tipo_prueba, empresa)
+    print(fecha_test, cantidad_dia, legajo_numero, tipo_prueba)
 
     total = cantidad_dia * PRECIO_POR_PRUEBA
 
@@ -80,6 +73,47 @@ def agg_prueba():
     print(f'\nTotal a cobrar: {total} Gs.')
 
 # -----------------------------
+# [C] Total del día
+# -----------------------------
+def total_del_dia():
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT SUM(total)
+        FROM pruebas
+        WHERE fecha = date('now')
+    ''')
+
+    total = cursor.fetchone()[0] or 0
+    conn.close()
+
+    print(f'\nTotal del dia: {total} Gs.')
+
+# -----------------------------
+# [D] Total del mes
+# -----------------------------
+def total_del_mes():
+    mes = input('\nIngrese mes (MM): ').strip()
+    anio = input('\nIngrese el año (YYYY): ').strip()
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT SUM(total)
+        FROM pruebas
+        WHERE strftime('%m', fecha) = ?
+          AND strftime('%Y', fecha) = ?
+    ''', (mes, anio))
+
+    total = cursor.fetchone()[0] or 0
+    conn.close()
+
+    print(f'\nTotal del mes {mes}/{anio}: {total} Gs')
+
+
+# -----------------------------
 # Main
 # -----------------------------
 def main():
@@ -95,6 +129,12 @@ def main():
 
         elif option == 'a':
             agg_prueba()
+
+        elif option == 'c':
+            total_del_dia()
+
+        elif option == 'd':
+            total_del_mes()
 
         else:
             print('\nOpcion no valida, intente de nuevo...')
