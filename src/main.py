@@ -1,12 +1,13 @@
 from database import conectar
+from database import conectar, crear_tablas
 
 conn = conectar()
 conn.close
 
 # -----------------------------
-# Show menu
+# Mostrar menu
 # -----------------------------
-def show_menu():
+def mostrar_menu():
     print('\n--- MENU DE PRUEBAS ---')
     print('[A] Agregar prueba')
     print('[B] Pruebas no hechas')
@@ -16,53 +17,55 @@ def show_menu():
     print('[S] Salir')
 
 # -----------------------------
-# Add test
+# [A] Agregar prueba
 # -----------------------------
-def add_test():
+def agg_prueba():
     while True:
-        date_test = input('\nFecha de test (DD/MM/YYY): ').strip()
-        if not date_test:
+        fecha_test = input('\nFecha de test (DD/MM/YYY): ').strip()
+        if not fecha_test:
             print('\nDebe agregar una fecha.')
             continue
         break
 
     while True:
-        number_day = int(input('Ingrese la cantidad de pruebas del dia: ').strip())
-        if not number_day:
+        cantidad_dia = int(input('Ingrese la cantidad de pruebas del dia: ').strip())
+        if not cantidad_dia:
             print('Debe agregar una cantidad de pruebas diaria (1 al 6).')
             continue
         break
 
     while True:
-        legajo_number = input('\nIngrese numero de legajo: ').strip()
-        if not legajo_number:
+        legajo_numero = input('\nIngrese numero de legajo: ').strip()
+        if not legajo_numero:
             print('\nPorfavor agrege un numero de legajo.')
             continue
         break
 
     while True:    
-        type_test = input('\nTipo de test (Pre, Rut, Post)?: ').strip().lower()
-        if not type_test:
+        tipo_prueba = input('\nTipo de test (Pre, Rut, Post)?: ').strip().lower()
+        if not tipo_prueba:
             print('\nPor favor inserte el tipo de test')
             continue
         break
 
     while True:
-        company = input('\nCual es la empresa?: ').strip().lower()
-        if not company:
+        empresa = input('\nCual es la empresa?: ').strip().lower()
+        if not empresa:
             print('\nPorfavor agregue una empresa.')
             continue
         break
 
     print('Prueba cargada (por ahora solo en memoria).')
-    print(date_test, number_day, legajo_number, type_test, company)
+    print(fecha_test, cantidad_dia, legajo_numero, tipo_prueba, empresa)
 
 # -----------------------------
 # Main
 # -----------------------------
 def main():
+    crear_tablas()
+    
     while True:
-        show_menu()
+        mostrar_menu()
         option = input('\nSeleccione una opcion: ').lower().strip()
 
         if option == 's':
@@ -70,7 +73,7 @@ def main():
             break
 
         elif option == 'a':
-            add_test()
+            agg_prueba()
 
         else:
             print('\nOpcion no valida, intente de nuevo...')
