@@ -1,6 +1,6 @@
 from database import conectar, crear_tablas
 from datetime import date
-import pandas as openpyxl
+import pandas as pd
 from pathlib import Path
 
 PRECIO_POR_PRUEBA = 100000 # guaranies (ejemplo)
@@ -36,6 +36,48 @@ def pedir_tipo_prueba():
             return tipo
         print('Tipo invalido. Use PRE, RUT o POST.')
 
+
+# -----------------------------
+# Cargar empresas
+# -----------------------------
+def cargar_empresa():
+    nombre = pedir_texto('Nombre de la empresa: ')
+    precio = pedir_entero('Precio por prueba (Gs): ', 1)
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        'INSERT INTO empresa (nombre, precio_por_prueba) VALUES (?, ?)',
+        (nombre, precio)
+    )
+
+    conn.commit()
+    conn.close()
+
+    print('\nEmpresa cargada correctamente.')
+
+# -----------------------------
+# Listar empresas
+# -----------------------------
+def listar_empresas():
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute('SELECT id, nombre, precio_por_prueba FROM empresa')
+    empresas = cursor.fetchall()
+    conn.close()
+
+    if not empresas:
+        print('\nNo hay empresas cargadas.')
+        return []
+    
+    print('\nEmpresas disponibles.')
+    for e in empresas:
+        print(f'{e[0]} - {e[1]} ({e[2]} Gs por prueba)')
+
+    return empresas
+
 # -----------------------------
 # Mostrar menu
 # -----------------------------
@@ -49,6 +91,7 @@ def mostrar_menu():
     print('[F] Eliminar prueba')
     print('[G] Ver total a cobrar')
     print('[H] Exportar a excel')
+    print('[I] Cargar empresa')
     print('[S] Salir')
 
 # -----------------------------
@@ -58,20 +101,43 @@ def agg_prueba():
     fecha_test = date.today().isoformat()
     cantidad_dia = pedir_entero('\nCantidad de pruebas del dia (1 a 6): ', 1, 6)
     legajo_numero = pedir_texto('Numero de legajo: ')
-    tipo_prueba = pedir_tipo_prueba
+    tipo_prueba = pedir_tipo_prueba()
 
-    total = cantidad_dia * PRECIO_POR_PRUEBA
+    empresas = listar_empresas()
+    if not empresas:
+        print('Debe cargar una empresa primero')
+        return
+    
+    empresa_id = pedir_entero('Seleccione ID de empresa: ', 1)
+
+    conn = conectar()
+    cursor = conn.cursor()
+    cursor.execute(
+        'SELECT precio_por_prueba FROM empresa WHERE id = ?',
+        (empresa_id,)
+    )
+    precio = cursor.fetchone()
+    conn.close()
+
+    if not precio:
+        print('Empresa no valida.')
+        return
+    
+    total = cantidad_dia * precio[0]
 
     conn = conectar()
     cursor = conn.cursor()
 
     cursor.execute('''
-        INSERT INTO pruebas (fecha, legajo, tipo_prueba, localidad, cantidad, total)
-        VALUES (?, ?, ?, ?, ?, ?)
+        INSERT INTO pruebas (
+            fecha, legajo, tipo_prueba, empresa_id, localidad, cantidad, total
+        )
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     ''', (
         fecha_test,
         legajo_numero,
         tipo_prueba,
+        empresa_id,
         'pendiente',
         cantidad_dia,
         total
@@ -137,16 +203,18 @@ def editar_prueba():
         'Nueva cantidad de pruebas (1 a 6): ', 1, 6
     )
 
-    nuevo_total = nueva_cantidad * PRECIO_POR_PRUEBA
-
     conn = conectar()
     cursor = conn.cursor()
 
-    cursor.execute('''
-        UPDATE pruebas
-        SET cantidad = ?, total = ?
-        WHERE id = ?
-    ''', (nueva_cantidad, nuevo_total, prueba_id))
+    cursor.execute(
+        'SELECT e.precio_por_prueba '
+        'FROM pruebas p JOIN empresa e ON p.empresa_id = e.id '
+        'WHERE p.id = ?',
+        (prueba_id,)
+    )
+    precio = cursor.fetchone()[0]
+
+    nuevo_total = nueva_cantidad * precio
 
     conn.commit()
     conn.close()
@@ -212,16 +280,18 @@ def exportar_excel():
 
     query = '''
         SELECT
-            id,
-            fecha,
-            legajo,
-            tipo_prueba,
-            localidad,
-            cantidad,
-            total
-        FROM pruebas
-        ORDER BY fechas
-'''
+            p.id,
+            p.fecha,
+            p.legajo,
+            p.tipo_prueba,
+            p.localidad,
+            p.cantidad,
+            p.total,
+            e.nombre AS empresa
+        FROM pruebas p
+        JOIN empresa e ON p.empresa_id = e.id
+        ORDER BY fecha
+    '''
 
     df = pd.read_sql_query(query, conn)
     conn.close()
@@ -231,7 +301,7 @@ def exportar_excel():
         return
     
     base_dir = Path(__file__).resolve().parent.parent
-    export.dir = base_dir / 'exports'
+    export_dir = base_dir / 'exports'
     export_dir.mkdir(exist_ok=True)
 
     archivo = export_dir / 'pruebas_poligraficas.xlsx'
@@ -262,7 +332,7 @@ def exportar_excel_mes():
         WHERE strftime('%m', fecha) = ?
           AND strftime('%Y', fecha) = ?
         ORDER BY fecha
-'''
+    '''
 
     df = pd.read_sql_query(query, conn, params=(mes, anio))
     conn.close()
@@ -327,6 +397,9 @@ def main():
                 exportar_excel_mes()
             else:
                 print('Opcion invalida')
+
+        elif option == 'i':
+            cargar_empresa()
 
         else:
             print('\nOpcion no valida, intente de nuevo...')

@@ -35,7 +35,9 @@ def crear_tablas():
         tipo_prueba TEXT NOT NULL,
         localidad TEXT NOT NULL,
         cantidad INTEGER NOT NULL,
-        total INTEGER NOT NULL
+        total INTEGER NOT NULL,
+        empresa_id INTEGER NOT NULL,
+        FOREIGN KEY (empresa_id) REFERENCES empresa(id)                   
     )
     ''')
 
