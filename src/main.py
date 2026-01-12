@@ -1,5 +1,7 @@
 from database import conectar, crear_tablas
 from datetime import date
+import pandas as openpyxl
+from pathlib import Path
 
 PRECIO_POR_PRUEBA = 100000 # guaranies (ejemplo)
 
@@ -203,6 +205,83 @@ def total_del_mes():
     print(f'\nTotal del mes {mes}/{anio}: {total} Gs')
 
 # -----------------------------
+# [H] Exportar a Excel (todo)
+# -----------------------------
+def exportar_excel():
+    conn = conectar()
+
+    query = '''
+        SELECT
+            id,
+            fecha,
+            legajo,
+            tipo_prueba,
+            localidad,
+            cantidad,
+            total
+        FROM pruebas
+        ORDER BY fechas
+'''
+
+    df = pd.read_sql_query(query, conn)
+    conn.close()
+
+    if df.empty:
+        print('\nNo hay datos  para exportar')
+        return
+    
+    base_dir = Path(__file__).resolve().parent.parent
+    export.dir = base_dir / 'exports'
+    export_dir.mkdir(exist_ok=True)
+
+    archivo = export_dir / 'pruebas_poligraficas.xlsx'
+    df.to_excel(archivo, index=False)
+
+    print(f'\nArchivo Excel generado correctamente.')
+    print(archivo)
+
+# -----------------------------
+# Exportar a Excel por mes
+# -----------------------------
+def exportar_excel_mes():
+    mes = pedir_texto('Ingrese mes (MM): ')
+    anio = pedir_texto('Ingrese año (YYYY): ')
+
+    conn = conectar()
+
+    query = '''
+        SELECT
+            id,
+            fecha,
+            legajo,
+            tipo_prueba,
+            localidad,
+            cantidad,
+            total
+        FROM pruebas
+        WHERE strftime('%m', fecha) = ?
+          AND strftime('%Y', fecha) = ?
+        ORDER BY fecha
+'''
+
+    df = pd.read_sql_query(query, conn, params=(mes, anio))
+    conn.close()
+
+    if df.empty:
+        print('\nNo hay datos para ese periodo')
+        return
+    
+    base_dir = Path(__file__).resolve().parent.parent
+    export_dir = base_dir / 'exports'
+    export_dir.mkdir(exist_ok=True)
+
+    archivo = export_dir / f'pruebas_{anio}_{mes}.xlsx'
+    df.to_excel(archivo, index=False)
+
+    print(f'\nExcel mensual generado:')
+    print(archivo)
+
+# -----------------------------
 # Main
 # -----------------------------
 def main():
@@ -236,6 +315,18 @@ def main():
 
         elif option == 'g':
             total_del_mes()
+
+        elif option == 'h':
+            print('\n[1] Exportar todo')
+            print('[2] Exportar mes')
+            sub = pedir_texto('Seleccione opcion: ')
+
+            if sub == '1':
+                exportar_excel()
+            elif sub == '2':
+                exportar_excel_mes()
+            else:
+                print('Opcion invalida')
 
         else:
             print('\nOpcion no valida, intente de nuevo...')
