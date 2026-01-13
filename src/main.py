@@ -3,8 +3,6 @@ from datetime import date
 import pandas as pd
 from pathlib import Path
 
-PRECIO_POR_PRUEBA = 100000 # guaranies (ejemplo)
-
 # -----------------------------
 # Entradas seguras
 # -----------------------------
@@ -95,17 +93,100 @@ def listar_empresas():
 # Mostrar menu
 # -----------------------------
 def mostrar_menu():
-    print('\n--- MENU DE PRUEBAS ---')
-    print('[A] Agregar prueba')
-    print('[B] Pruebas no hechas')
-    print('[C] Ver pruebas del dia')
-    print('[D] Mostrar pruebas')
-    print('[E] Editar prueba')
-    print('[F] Eliminar prueba')
-    print('[G] Ver total a cobrar')
-    print('[H] Exportar a excel')
-    print('[I] Cargar empresa')
+    print('\n=== MENU PRINCIPAL ===')
+    print('[A] Pruebas')
+    print('[B] Empresas')
+    print('[C] Totales / Reportes')
+    print('[D] Exportar')
     print('[S] Salir')
+
+# Submenu de pruebas
+def menu_pruebas():
+    while True:
+        print('\n--- PRUEBAS ---')
+        print('[1] Agregar prueba')
+        print('[2] Mostrar pruebas')
+        print('[3] Editar prueba')
+        print('[4] Eliminar prueba')
+        print('[0] Volver')
+
+        op = pedir_texto('Opcion: ')
+
+        if op == '1':
+            agg_prueba()
+        elif op == '2':
+            mostrar_pruebas()
+        elif op == '3':
+            editar_prueba()
+        elif op == '4':
+            eliminar_prueba()
+        elif op == '0':
+            break
+        else:
+            print('Opcion invalida.')
+
+# Submenu de empresas
+def menu_empresas():
+    while True:
+        print('\n--- EMPRESAS ---')
+        print('[1] Cargar empresa')
+        print('[2] Listar empresas')
+        print('[0] Volver')
+
+        op = pedir_texto('Opcion: ')
+
+        if op == '1':
+            cargar_empresa()
+        elif op == '2':
+            listar_empresas()
+        elif op == '0':
+            break
+        else:
+            print('Opcion invalida.')
+
+# Submenu TOTALES/REPORTES
+def menu_totales():
+    while True:
+        print('\n--- TOTALES / REPORTES ---')
+        print('[1] Total del día')
+        print('[2] Total del mes')
+        print('[3] Total por empresa')
+        print('[4] Total por empresa (mes)')
+        print('[0] Volver')
+
+        op = pedir_texto('Opcion: ')
+
+        if op == '1':
+            total_del_dia()
+        elif op == '2':
+            total_del_mes()
+        elif op == '3':
+            total_por_empresa()
+        elif op == '4':
+            total_por_empresa_mes()
+        elif op == '0':
+            break
+        else:
+            print('Opcion invalida.')
+
+# Submenu exportar
+def menu_exportar():
+    while True:
+        print('\n--- EXPORTAR ---')
+        print('[1] Exportar todo a Excel')
+        print('[2] Exportar mes a Excel')
+        print('[0] Volver')
+
+        op = pedir_texto('Opcion: ')
+
+        if op == '1':
+            exportar_excel()
+        elif op == '2':
+            exportar_excel_mes()
+        elif op == '0':
+            break
+        else:
+            print('Opcion invalida.')
 
 # -----------------------------
 # [A] Agregar prueba
@@ -166,6 +247,7 @@ def agg_prueba():
 # [C] Total del día
 # -----------------------------
 def total_del_dia():
+    fecha = pedir_fecha()
     conn = conectar()
     cursor = conn.cursor()
 
@@ -220,9 +302,7 @@ def editar_prueba():
     mostrar_pruebas()
 
     prueba_id = pedir_entero('\nIngrese el ID a editar: ', 1)
-    nueva_cantidad = pedir_entero(
-        'Nueva cantidad de pruebas (1 a 6): ', 1, 6
-    )
+    nueva_cantidad = pedir_entero('Nueva cantidad de pruebas (1 a 6): ', 1, 6)
 
     conn = conectar()
     cursor = conn.cursor()
@@ -233,9 +313,20 @@ def editar_prueba():
         'WHERE p.id = ?',
         (prueba_id,)
     )
-    precio = cursor.fetchone()[0]
+    fila = cursor.fetchone()
+    if not fila:
+        print('Prueba no encontrada.')
+        conn.close()
+        return
+
+    precio = fila[0]
 
     nuevo_total = nueva_cantidad * precio
+
+    cursor.execute(
+        'UPDATE pruebas SET cantidad = ?, total = ? WHERE id = ?',
+        (nueva_cantidad, nuevo_total, prueba_id)
+    )
 
     conn.commit()
     conn.close()
@@ -332,6 +423,69 @@ def exportar_excel():
     print(archivo)
 
 # -----------------------------
+# [I] Total por empresa
+# -----------------------------
+def total_por_empresa():
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT
+            e.nombre,
+            SUM(p.total)
+        FROM pruebas p
+        JOIN empresa e ON p.empresa_id = e.id
+        GROUP BY e.id
+        ORDER BY e.nombre
+    ''')
+    
+    filas = cursor.fetchall()
+    conn.close()
+
+    if not filas:
+        print('\nNo hay datos para mostrar')
+        return
+    
+    print('\nTOTAL POR EMPRESA')
+    print('-' * 40)
+    for nombre,total in filas:
+        print(f'{nombre:<20} {total or 0} Gs')
+
+# -----------------------------
+# [J] Total de empresa por mes
+# -----------------------------
+def total_por_empresa_mes():
+    mes = pedir_texto('Ingrese mes (MM): ')
+    anio = pedir_texto('Ingrese año (YYYY): ')
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT
+            e.nombre,
+            SUM(p.total)
+        FROM pruebas p
+        JOIN empresa e ON p.empresa_id = e.id
+        WHERE strftime('%m', p.fecha) = ?
+          AND strftime('%Y', p.fecha) = ?
+        GROUP BY e.id
+        ORDER BY e.nombre
+    ''', (mes, anio))
+
+    filas = cursor.fetchall()
+    conn.close()
+
+    if not filas:
+        print('\nNo hay datos para ese periodo.')
+        return
+    
+    print(f'\nTOTAL POR EMPRESA - {mes}/{anio}')
+    print('-' * 40)
+    for nombre, total in filas:
+        print(f'{nombre:<20} {total or 0} Gs')
+
+# -----------------------------
 # Exportar a Excel por mes
 # -----------------------------
 def exportar_excel_mes():
@@ -385,45 +539,16 @@ def main():
         if option == 's':
             print('\nSaliendo del programa...')
             break
-
         elif option == 'a':
-            agg_prueba()
-
+            menu_pruebas()
         elif option == 'b':
-            print('\nFuncion no implementada.')
-
+            menu_empresas()
         elif option == 'c':
-            total_del_dia()
-
+            menu_totales()
         elif option == 'd':
-            mostrar_pruebas()
-
-        elif option == 'e':
-            editar_prueba()
-
-        elif option == 'f':
-            eliminar_prueba()
-
-        elif option == 'g':
-            total_del_mes()
-
-        elif option == 'h':
-            print('\n[1] Exportar todo')
-            print('[2] Exportar mes')
-            sub = pedir_texto('Seleccione opcion: ')
-
-            if sub == '1':
-                exportar_excel()
-            elif sub == '2':
-                exportar_excel_mes()
-            else:
-                print('Opcion invalida')
-
-        elif option == 'i':
-            cargar_empresa()
-
+            menu_exportar()
         else:
-            print('\nOpcion no valida, intente de nuevo...')
+            print('Opcion invalida.')
 
 if __name__ == '__main__':
     main()
