@@ -35,7 +35,20 @@ def pedir_tipo_prueba():
         if tipo in ('PRE', 'RUT', 'POST'):
             return tipo
         print('Tipo invalido. Use PRE, RUT o POST.')
-
+        
+# -----------------------------
+# Pedir fecha
+# -----------------------------
+def pedir_fecha():
+    while True:
+        fecha = input('Fecha (YYYY-MM-DD) [Enter = hoy]: ').strip()
+        if not fecha:
+            return date.today().isoformat()
+        try:
+            date.fromisoformat(fecha)
+            return fecha
+        except ValueError:
+            print('Formato invalido. Use AÑO-MES-DIA')
 
 # -----------------------------
 # Cargar empresas
@@ -98,7 +111,7 @@ def mostrar_menu():
 # [A] Agregar prueba
 # -----------------------------
 def agg_prueba():
-    fecha_test = date.today().isoformat()
+    fecha_test = pedir_fecha()
     cantidad_dia = pedir_entero('\nCantidad de pruebas del dia (1 a 6): ', 1, 6)
     legajo_numero = pedir_texto('Numero de legajo: ')
     tipo_prueba = pedir_tipo_prueba()
@@ -175,9 +188,17 @@ def mostrar_pruebas():
     cursor = conn.cursor()
 
     cursor.execute('''
-        SELECT id, fecha, legajo, tipo_prueba, cantidad, total
-        FROM pruebas
-        ORDER BY id DESC
+        SELECT
+            p.id,
+            p.fecha,
+            p.legajo,
+            p.tipo_prueba,
+            e.nombre,
+            p.cantidad,
+            p.total
+        FROM pruebas p
+        JOIN empresa e ON p.empresa_id = e.id
+        ORDER BY p.id DESC
     ''')
 
     filas = cursor.fetchall()
@@ -187,10 +208,10 @@ def mostrar_pruebas():
         print('\nNo hay pruebas cargadas.')
         return
     
-    print('\nID |  Fecha     | Legajo | Tipo | Cant | Total')
-    print('-' * 50)
+    print('\nID |  Fecha     | Legajo | Tipo | Empresa        | Cant | Total')
+    print('-' * 75)
     for f in filas:
-        print(f'{f[0]:<3}| {f[1]:<10} | {f[2]:<6} | {f[3]:<4} | {f[4]:<4} | {f[5]}')
+        print(f'{f[0]:<3}| {f[1]:<10} | {f[2]:<6} | {f[3]:<4} | {f[4]:<14} | {f[5]:<4} | {f[6]}')
 
 # -----------------------------
 # [E] Editar prueba
