@@ -36,8 +36,9 @@ def crear_tablas():
         localidad TEXT NOT NULL,
         cantidad INTEGER NOT NULL,
         total INTEGER NOT NULL,
+        estado TEXT NOT NULL,              -- NUEVO
         empresa_id INTEGER NOT NULL,
-        FOREIGN KEY (empresa_id) REFERENCES empresa(id)                   
+        FOREIGN KEY (empresa_id) REFERENCES empresa(id)
     )
     ''')
 
