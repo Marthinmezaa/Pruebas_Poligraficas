@@ -1,4 +1,4 @@
-from database import conectar, crear_tablas
+from database_pg import conectar, crear_tablas
 from datetime import date
 import pandas as pd
 from pathlib import Path
@@ -51,17 +51,17 @@ def pedir_fecha():
 # -----------------------------
 # Marcar prueba NO hecha
 # -----------------------------
-def marcar_prueba_no_hecha():
+def marcar_no_hecha():
     mostrar_pruebas()
 
-    prueba_id = pedir_entero('Ingrese ID de la prueba NO realizada: ', 1)
+    prueba_id = pedir_entero('\nIngrese el ID a marcar como NO HECHA: ', 1)
 
     conn = conectar()
     cursor = conn.cursor()
 
     cursor.execute(
-        'UPDATE pruebas SET estado = ? WHERE id = ?',
-        ('NO_HECHA', prueba_id)
+        'UPDATE pruebas SET estado = %s WHERE id = %s',
+        ('NO HECHA', prueba_id)
     )
 
     conn.commit()
@@ -86,7 +86,7 @@ def cargar_empresa():
     cursor = conn.cursor()
 
     cursor.execute(
-        'INSERT INTO empresa (nombre, precio_por_prueba) VALUES (?, ?)',
+        'INSERT INTO empresa (nombre, precio_por_prueba) VALUES (%s, %s)',
         (nombre, precio)
     )
 
@@ -151,7 +151,7 @@ def menu_pruebas():
         elif op == '4':
             eliminar_prueba()
         elif op == '5':
-            marcar_prueba_no_hecha()
+            marcar_no_hecha()
         elif op == '6':
             mostrar_pruebas_no_hechas()
         elif op == '0':
@@ -186,6 +186,7 @@ def menu_totales():
         print('[2] Total del mes')
         print('[3] Total por empresa')
         print('[4] Total por empresa (mes)')
+        print('[5] Pruebas NO HECHAS (dinero perdido)')
         print('[0] Volver')
 
         op = pedir_texto('Opcion: ')
@@ -198,6 +199,8 @@ def menu_totales():
             total_por_empresa()
         elif op == '4':
             total_por_empresa_mes()
+        elif op == '5':
+            ver_pruebas_no_hechas()
         elif op == '0':
             break
         else:
@@ -234,14 +237,14 @@ def agg_prueba():
     if not empresas:
         print('Debe cargar una empresa primero')
         return
-    
+
     empresa_id = pedir_entero('Seleccione ID de empresa: ', 1)
 
     conn = conectar()
     cursor = conn.cursor()
 
     cursor.execute(
-        'SELECT precio_por_prueba FROM empresa WHERE id = ?',
+        'SELECT precio_por_prueba FROM empresa WHERE id = %s',
         (empresa_id,)
     )
     fila = cursor.fetchone()
@@ -255,18 +258,17 @@ def agg_prueba():
 
     cursor.execute('''
         INSERT INTO pruebas (
-            fecha, legajo, tipo_prueba,
-            empresa_id, localidad, cantidad,
-            total, estado
+            fecha, legajo, tipo_prueba, empresa_id,
+            localidad, cantidad, total, estado
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
     ''', (
         fecha_test,
         legajo_numero,
         tipo_prueba,
         empresa_id,
         'pendiente',
-        1,
+        1,          
         precio,
         'HECHA'
     ))
@@ -288,8 +290,8 @@ def total_del_dia():
     cursor.execute('''
         SELECT SUM(total)
         FROM pruebas
-        WHERE fecha = date('now')
-    ''')
+        WHERE fecha = %s
+    ''', (fecha,))
 
     total = cursor.fetchone()[0] or 0
     conn.close()
@@ -317,7 +319,7 @@ def mostrar_pruebas(no_hechas=False):
     '''
 
     if no_hechas:
-        query += " WHERE p.estado = 'NO_HECHA'"
+        query += " WHERE p.estado = 'NO HECHA'"
 
     query += ' ORDER BY p.id DESC'
 
@@ -332,9 +334,10 @@ def mostrar_pruebas(no_hechas=False):
     print('\nID | Fecha      | Legajo | Tipo | Empresa          | Total  | Estado')
     print('-' * 75)
     for f in filas:
+        fecha_str = f[1].strftime('%Y-%m-%d')
         print(
-            f'{f[0]:<3}| {f[1]:<10} | {f[2]:<6} | '
-            f'{f[3]:<4} | {f[4]:<14} | {f[5]} | {f[6]}'
+            f'{f[0]:<3}| {fecha_str:<10} | {f[2]:<6} | '
+            f'{f[3]:<4} | {f[4]:<14} | {f[5]:<6} | {f[6]}'
         )
 
 # -----------------------------
@@ -343,34 +346,114 @@ def mostrar_pruebas(no_hechas=False):
 def editar_prueba():
     mostrar_pruebas()
 
-    prueba_id = pedir_entero('\nIngrese el ID a editar: ', 1)
+    prueba_id = pedir_entero('\nIngrese el ID de la prueba a editar: ', 1)
 
     conn = conectar()
     cursor = conn.cursor()
 
-    cursor.execute(
-        'SELECT empresa_id FROM pruebas WHERE id = ?',
-        (prueba_id,)
-    )
-    fila = cursor.fetchone()
+    cursor.execute('''
+        SELECT fecha, legajo, tipo_prueba, empresa_id, estado
+        FROM pruebas
+        WHERE id = %s
+    ''', (prueba_id,))
 
+    fila = cursor.fetchone()
     if not fila:
         print('Prueba no encontrada.')
         conn.close()
         return
 
-    empresa_id = fila[0]
+    fecha_actual, legajo_actual, tipo_actual, empresa_actual, estado_actual = fila
 
-    cursor.execute(
-        'SELECT precio_por_prueba FROM empresa WHERE id = ?',
-        (empresa_id,)
-    )
-    precio = cursor.fetchone()[0]
+    print('\n--- Deje ENTER para mantener el valor actual ---')
 
+    # Fecha
+    nueva_fecha = input(
+        f'Fecha [{fecha_actual}]: '
+    ).strip()
+    if not nueva_fecha:
+        nueva_fecha = fecha_actual
+    else:
+        try:
+            date.fromisoformat(nueva_fecha)
+        except ValueError:
+            print('Fecha invalida.')
+            conn.close()
+            return
+
+    # Legajo
+    nuevo_legajo = input(
+        f'Legajo [{legajo_actual}]: '
+    ).strip()
+    if not nuevo_legajo:
+        nuevo_legajo = legajo_actual
+
+    # Tipo de prueba
+    nuevo_tipo = input(
+        f'Tipo [{tipo_actual}]: '
+    ).strip().upper()
+    if not nuevo_tipo:
+        nuevo_tipo = tipo_actual
+    elif nuevo_tipo not in ('PRE', 'RUT', 'POST'):
+        print('Tipo invalido.')
+        conn.close()
+        return
+
+    # Estado
+    nuevo_estado = input(
+        f'Estado [{estado_actual}]: '
+    ).strip().upper()
+    if not nuevo_estado:
+        nuevo_estado = estado_actual
+    elif nuevo_estado not in ('HECHA', 'NO HECHA'):
+        print('Estado invalido.')
+        conn.close()
+        return
+
+    # Empresa
+    print('\nEmpresas disponibles:')
+    listar_empresas()
+
+    nueva_empresa = input(
+        f'Empresa ID [{empresa_actual}]: '
+    ).strip()
+    if not nueva_empresa:
+        nueva_empresa = empresa_actual
+    else:
+        nueva_empresa = int(nueva_empresa)
+
+    # Precio nuevo
     cursor.execute(
-        'UPDATE pruebas SET total = ? WHERE id = ?',
-        (precio, prueba_id)
+        'SELECT precio_por_prueba FROM empresa WHERE id = %s',
+        (nueva_empresa,)
     )
+    fila_precio = cursor.fetchone()
+    if not fila_precio:
+        print('Empresa invalida.')
+        conn.close()
+        return
+
+    nuevo_total = fila_precio[0]
+
+    # UPDATE final
+    cursor.execute('''
+        UPDATE pruebas
+        SET fecha = %s,
+            legajo = %s,
+            tipo_prueba = %s,
+            empresa_id = %s,
+            total = %s,
+            estado = %s
+        WHERE id = %s
+    ''', (
+        nueva_fecha,
+        nuevo_legajo,
+        nuevo_tipo,
+        nueva_empresa,
+        nuevo_total,
+        nuevo_estado,
+        prueba_id
+    ))
 
     conn.commit()
     conn.close()
@@ -397,7 +480,7 @@ def eliminar_prueba():
     cursor = conn.cursor()
 
     cursor.execute(
-        'DELETE FROM pruebas WHERE id = ?',
+        'DELETE FROM pruebas WHERE id = %s',
         (prueba_id,)
     )
 
@@ -410,8 +493,8 @@ def eliminar_prueba():
 # [G] Total del mes
 # -----------------------------
 def total_del_mes():
-    mes = pedir_texto('\nIngrese mes (MM): ')
-    anio = pedir_texto('\nIngrese el año (YYYY): ')
+    mes = int(pedir_texto('Ingrese mes (MM): '))
+    anio = int(pedir_texto('Ingrese año (YYYY): '))
 
     conn = conectar()
     cursor = conn.cursor()
@@ -419,8 +502,8 @@ def total_del_mes():
     cursor.execute('''
         SELECT SUM(total)
         FROM pruebas
-        WHERE strftime('%m', fecha) = ?
-          AND strftime('%Y', fecha) = ?
+        WHERE EXTRACT(MONTH FROM fecha) = %s
+          AND EXTRACT(YEAR FROM fecha) = %s
     ''', (mes, anio))
 
     total = cursor.fetchone()[0] or 0
@@ -499,8 +582,8 @@ def total_por_empresa():
 # [J] Total de empresa por mes
 # -----------------------------
 def total_por_empresa_mes():
-    mes = pedir_texto('Ingrese mes (MM): ')
-    anio = pedir_texto('Ingrese año (YYYY): ')
+    mes = int(pedir_texto('Ingrese mes (MM): '))
+    anio = int(pedir_texto('Ingrese año (YYYY): '))
 
     conn = conectar()
     cursor = conn.cursor()
@@ -511,8 +594,8 @@ def total_por_empresa_mes():
             SUM(p.total)
         FROM pruebas p
         JOIN empresa e ON p.empresa_id = e.id
-        WHERE strftime('%m', p.fecha) = ?
-          AND strftime('%Y', p.fecha) = ?
+        WHERE EXTRACT(MONTH FROM fecha) = %s
+          AND EXTRACT(YEAR FROM fecha) = %s
         GROUP BY e.id
         ORDER BY e.nombre
     ''', (mes, anio))
@@ -533,9 +616,8 @@ def total_por_empresa_mes():
 # Exportar a Excel por mes
 # -----------------------------
 def exportar_excel_mes():
-    mes = pedir_texto('Ingrese mes (MM): ')
-    anio = pedir_texto('Ingrese año (YYYY): ')
-
+    mes = int(pedir_texto('Ingrese mes (MM): '))
+    anio = int(pedir_texto('Ingrese año (YYYY): '))
     conn = conectar()
 
     query = '''
@@ -548,8 +630,8 @@ def exportar_excel_mes():
             cantidad,
             total
         FROM pruebas
-        WHERE strftime('%m', fecha) = ?
-          AND strftime('%Y', fecha) = ?
+        WHERE EXTRACT(MONTH FROM fecha) = %s
+          AND EXTRACT(YEAR FROM fecha) = %s
         ORDER BY fecha
     '''
 
@@ -587,6 +669,43 @@ def total_perdido():
     conn.close()
 
     print(f'\n💸 Dinero perdido por pruebas no hechas: {total} Gs.')
+
+# -----------------------------
+# Ver pruebas no hechas
+# -----------------------------
+def ver_pruebas_no_hechas():
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        SELECT
+            p.id,
+            p.fecha,
+            e.nombre,
+            p.total
+        FROM pruebas p
+        JOIN empresa e ON p.empresa_id = e.id
+        WHERE p.estado = %s
+        ORDER BY p.fecha
+    ''', ('NO HECHA',))
+
+    filas = cursor.fetchall()
+    conn.close()
+
+    if not filas:
+        print('\nNo hay pruebas NO HECHAS.')
+        return
+
+    print('\nPRUEBAS NO HECHAS')
+    print('-' * 50)
+
+    total_perdido = 0
+    for f in filas:
+        print(f'ID {f[0]} | {f[1]} | {f[2]} | {f[3]} Gs')
+        total_perdido += f[3]
+
+    print('-' * 50)
+    print(f'TOTAL PERDIDO: {total_perdido} Gs')
 
 # -----------------------------
 # Main
