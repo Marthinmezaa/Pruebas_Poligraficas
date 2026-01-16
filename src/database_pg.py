@@ -34,6 +34,7 @@ def crear_tablas():
         cantidad INTEGER NOT NULL,
         total INTEGER NOT NULL,
         estado TEXT NOT NULL,
+        estado_pago TEXT NOT NULL DEFAULT 'NO PAGADO',
         empresa_id INTEGER NOT NULL,
         CONSTRAINT fk_empresa
             FOREIGN KEY (empresa_id)

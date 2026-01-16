@@ -3,7 +3,11 @@ from datetime import date
 import pandas as pd
 from pathlib import Path
 
+# -----------------------------
+# Constantes
+# -----------------------------
 ANCHO_EMPRESA = 25
+LINEA = '-' * 95
 
 # -----------------------------
 # Entradas seguras
@@ -99,13 +103,12 @@ def mostrar_menu():
 def menu_pruebas():
     while True:
         print('\n--- PRUEBAS ---')
-        print('[1] Agregar prueba')
-        print('[2] Mostrar pruebas')
+        print('[1] Registrar prueba')
+        print('[2] Listado de pruebas')
         print('[3] Editar prueba')
-        print('[4] Eliminar prueba')
-        print('[5] Marcar prueba como NO hecha')
-        print('[6] Ver pruebas NO hechas')
-        print('[7] Buscar pruebas')
+        print('[4] Buscar pruebas')
+        print('[5] Cambiar estado / pago')
+        print('[6] Eliminar prueba')
         print('[0] Volver')
 
         op = pedir_texto('Opcion: ')
@@ -113,23 +116,21 @@ def menu_pruebas():
         if op == '1':
             agg_prueba()
         elif op == '2':
-            mostrar_pruebas()
+            menu_ver_pruebas()
         elif op == '3':
             editar_prueba()
         elif op == '4':
-            eliminar_prueba()
-        elif op == '5':
-            marcar_no_hecha()
-        elif op == '6':
-            mostrar_pruebas_no_hechas_simple()
-        elif op == '7':
             buscar_pruebas()
+        elif op == '5':
+            menu_estados_pruebas()
+        elif op == '6':
+            eliminar_prueba()
         elif op == '0':
             break
         else:
             print('Opcion invalida.')
 
-# --- [1] Agregar prueba ---
+# === [1] Agregar pruebas ===
 def agg_prueba():
     fecha_test = pedir_fecha()
     legajo_numero = pedir_texto('Numero de legajo: ')
@@ -161,18 +162,19 @@ def agg_prueba():
     cursor.execute('''
         INSERT INTO pruebas (
             fecha, legajo, tipo_prueba, empresa_id,
-            localidad, cantidad, total, estado
+            localidad, cantidad, total, estado, estado_pago
         )
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
     ''', (
         fecha_test,
         legajo_numero,
         tipo_prueba,
         empresa_id,
         'pendiente',
-        1,          
+        1,
         precio,
-        'HECHA'
+        'HECHA',
+        'NO PAGADO'
     ))
 
     conn.commit()
@@ -181,7 +183,27 @@ def agg_prueba():
     print('\nPrueba cargada como HECHA.')
     print(f'Total a cobrar: {precio} Gs.')
 
-# --- [2] Mostrar pruebas ---
+# === [2] Sub menu VER PRUEBAS ===
+def menu_ver_pruebas():
+    while True:
+        print('\n--- VER PRUEBAS ---')
+        print('[1] Todas las pruebas')
+        print('[2] Solo NO HECHAS')
+        print('[0] Volver')
+
+        op = pedir_texto('Opcion: ')
+
+        if op == '1':
+            mostrar_pruebas()
+        elif op == '2':
+            mostrar_pruebas(no_hechas=True)
+        elif op == '0':
+            break
+        else:
+            print('Opcion invalida.')
+
+
+# --- [1] Mostrar pruebas ---
 def mostrar_pruebas(no_hechas=False):
     conn = conectar()
     cursor = conn.cursor()
@@ -194,7 +216,8 @@ def mostrar_pruebas(no_hechas=False):
             p.tipo_prueba,
             e.nombre,
             p.total,
-            p.estado
+            p.estado,
+            p.estado_pago
         FROM pruebas p
         JOIN empresa e ON p.empresa_id = e.id
     '''
@@ -212,8 +235,8 @@ def mostrar_pruebas(no_hechas=False):
         print('\nNo hay pruebas para mostrar.')
         return
     
-    print('\nID | Fecha      | Legajo | Tipo | Empresa                   | Total   | Estado')
-    print('-' * 85)
+    print('\nID | Fecha      | Legajo | Tipo | Empresa                   | Total   | Estado   | Pago')
+    print(LINEA)
     for f in filas:
         fecha_str = (
             f[1].strftime('%Y-%m-%d')
@@ -222,10 +245,11 @@ def mostrar_pruebas(no_hechas=False):
         )
         print(
             f'{f[0]:<3}| {fecha_str:<10} | {f[2]:<6} | '
-            f'{f[3]:<4} | {f[4]:<{ANCHO_EMPRESA}} | {f[5]:<7} | {f[6]}'
+            f'{f[3]:<4} | {f[4]:<{ANCHO_EMPRESA}} | '
+            f'{f[5]:<7} | {f[6]:<8} | {f[7]}'
         )
 
-# --- [3] Editar pruebas ---
+# === [3] Editar prueba ===
 def editar_prueba():
     mostrar_pruebas()
 
@@ -343,7 +367,202 @@ def editar_prueba():
 
     print('\nPrueba actualizada correctamente.')
 
-# --- [4] Eliminar pruebas ---
+# === [4] Buscar pruebas ===
+def buscar_pruebas():
+    while True:
+        print('\n--- BUSCAR PRUEBAS ---')
+        print('[1] Buscar por ID')
+        print('[2] Buscar por fecha')
+        print('[3] Buscar por legajo')
+        print('[4] Buscar por empresa')
+        print('[5] Última prueba HECHA (por legajo)')
+        print('[0] Volver')
+
+        op = pedir_texto('Opcion: ')
+
+        conn = conectar()
+        cursor = conn.cursor()
+
+        if op == '1':
+            prueba_id = pedir_entero('Ingrese ID: ', 1)
+            cursor.execute('''
+                SELECT
+                    p.id,
+                    p.fecha,
+                    p.legajo,
+                    p.tipo_prueba,
+                    e.nombre,
+                    p.total,
+                    p.estado,
+                    p.estado_pago
+                FROM pruebas p
+                JOIN empresa e ON p.empresa_id = e.id
+            ''', (prueba_id,))
+
+        elif op == '2':
+            fecha = pedir_fecha()
+            cursor.execute('''
+                SELECT
+                    p.id,
+                    p.fecha,
+                    p.legajo,
+                    p.tipo_prueba,
+                    e.nombre,
+                    p.total,
+                    p.estado,
+                    p.estado_pago
+                FROM pruebas p
+                JOIN empresa e ON p.empresa_id = e.id
+            ''', (fecha,))
+
+        elif op == '3':
+            legajo = pedir_texto('Ingrese legajo: ')
+            cursor.execute('''
+                SELECT
+                    p.id,
+                    p.fecha,
+                    p.legajo,
+                    p.tipo_prueba,
+                    e.nombre,
+                    p.total,
+                    p.estado,
+                    p.estado_pago
+                FROM pruebas p
+                JOIN empresa e ON p.empresa_id = e.id
+            ''', (legajo,))
+
+        elif op == '4':
+            empresas = listar_empresas()
+            if not empresas:
+                conn.close()
+                return
+
+            empresa_id = pedir_entero('Ingrese ID de empresa: ', 1)
+            cursor.execute('''
+                SELECT
+                    p.id,
+                    p.fecha,
+                    p.legajo,
+                    p.tipo_prueba,
+                    e.nombre,
+                    p.total,
+                    p.estado,
+                    p.estado_pago
+                FROM pruebas p
+                JOIN empresa e ON p.empresa_id = e.id
+            ''', (empresa_id,))
+
+        elif op == '5':
+            cursor.execute('''
+                SELECT
+                    p.id,
+                    p.fecha,
+                    p.legajo,
+                    p.tipo_prueba,
+                    e.nombre,
+                    p.total,
+                    p.estado,
+                    p.estado_pago
+                FROM pruebas p
+                JOIN empresa e ON p.empresa_id = e.id
+                WHERE p.estado = 'HECHA'
+                ORDER BY p.legajo DESC, p.fecha DESC
+                LIMIT 1
+            ''')
+
+        elif op == '0':
+            conn.close()
+            break
+
+        else:
+            print('Opcion invalida.')
+            conn.close()
+            continue
+
+        filas = cursor.fetchall()
+        conn.close()
+
+        if not filas:
+            print('\nNo se encontraron resultados.')
+            continue
+
+        print('\nID | Fecha      | Legajo | Tipo | Empresa          | Total  | Estado   | Pago')
+        print('-' * 95)
+
+        for f in filas:
+            fecha_str = f[1].strftime('%Y-%m-%d')
+            print(
+            f'{f[0]:<3}| {fecha_str:<10} | {f[2]:<6} | '
+            f'{f[3]:<4} | {f[4]:<14} | {f[5]:<6} | '
+            f'{f[6]:<8} | {f[7]}'
+            )    
+
+# === [5] Sub menu ESTADOS DE PRUEBA ===
+def menu_estados_pruebas():
+    while True:
+        print('\n--- ESTADOS / PAGOS ---')
+        print('[1] Marcar prueba como NO HECHA')
+        print('[2] Marcar prueba como PAGADA')
+        print('[0] Volver')
+
+        op = pedir_texto('Opcion: ')
+
+        if op == '1':
+            marcar_no_hecha()
+        elif op == '2':
+            marcar_pagada()
+        elif op == '0':
+            break
+        else:
+            print('Opcion invalida.')
+
+# --- [1] Marcar prueba como NO hecha ---
+def marcar_no_hecha():
+    mostrar_pruebas()
+
+    prueba_id = pedir_entero('\nIngrese el ID a marcar como NO HECHA: ', 1)
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute(
+        'UPDATE pruebas SET estado = %s WHERE id = %s',
+        ('NO HECHA', prueba_id)
+    )
+
+    conn.commit()
+    conn.close()
+
+    print('\nPrueba marcada como NO HECHA.')
+
+# --- [2] Marcar pruebas como PAGADA ---
+def marcar_pagada():
+    mostrar_pruebas()
+
+    prueba_id = pedir_entero(
+        '\nIngrese el ID de la prueba a marcar como PAGADA: ', 1
+    )
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    cursor.execute('''
+        UPDATE pruebas
+        SET estado_pago = 'PAGADO'
+        WHERE id = %s
+          AND estado = 'HECHA'
+          AND estado_pago = 'NO PAGADO'
+    ''', (prueba_id,))
+
+    if cursor.rowcount == 0:
+        print('La prueba no existe, no está HECHA o ya está PAGADA.')
+    else:
+        print('Prueba marcada como PAGADA.')
+
+    conn.commit()
+    conn.close()           
+
+# === [6] Eliminar pruebas ===
 def eliminar_prueba():
     mostrar_pruebas()
 
@@ -369,148 +588,6 @@ def eliminar_prueba():
     conn.close()
 
     print('\nPrueba eliminada correctamente.')
-
-# --- [5] Marcar prueba como NO hecha ---
-def marcar_no_hecha():
-    mostrar_pruebas()
-
-    prueba_id = pedir_entero('\nIngrese el ID a marcar como NO HECHA: ', 1)
-
-    conn = conectar()
-    cursor = conn.cursor()
-
-    cursor.execute(
-        'UPDATE pruebas SET estado = %s WHERE id = %s',
-        ('NO HECHA', prueba_id)
-    )
-
-    conn.commit()
-    conn.close()
-
-    print('\nPrueba marcada como NO HECHA.')
-
-# --- [6] Ver pruebas NO hechas ---
-def ver_pruebas_no_hechas():
-    conn = conectar()
-    cursor = conn.cursor()
-
-    cursor.execute('''
-        SELECT
-            p.id,
-            p.fecha,
-            e.nombre,
-            p.total
-        FROM pruebas p
-        JOIN empresa e ON p.empresa_id = e.id
-        WHERE p.estado = %s
-        ORDER BY p.fecha
-    ''', ('NO HECHA',))
-
-    filas = cursor.fetchall()
-    conn.close()
-
-    if not filas:
-        print('\nNo hay pruebas NO HECHAS.')
-        return
-
-    print('\nPRUEBAS NO HECHAS')
-    print('-' * 50)
-
-    total_perdido = 0
-    for f in filas:
-        print(f'ID {f[0]} | {f[1]} | {f[2]} | {f[3]} Gs')
-        total_perdido += f[3]
-
-    print('-' * 50)
-    print(f'TOTAL PERDIDO: {total_perdido} Gs')
-
-# --- [7] Buscar pruebas ---
-def buscar_pruebas():
-    while True:
-        print('\n--- BUSCAR PRUEBAS ---')
-        print('[1] Buscar por ID')
-        print('[2] Buscar por fecha')
-        print('[3] Buscar por legajo')
-        print('[4] Buscar por empresa')
-        print('[0] Volver')
-
-        op = pedir_texto('Opcion: ')
-
-        conn = conectar()
-        cursor = conn.cursor()
-
-        if op == '1':
-            prueba_id = pedir_entero('Ingrese ID: ', 1)
-            cursor.execute('''
-                SELECT p.id, p.fecha, p.legajo, p.tipo_prueba,
-                       e.nombre, p.total, p.estado
-                FROM pruebas p
-                JOIN empresa e ON p.empresa_id = e.id
-                WHERE p.id = %s
-            ''', (prueba_id,))
-
-        elif op == '2':
-            fecha = pedir_fecha()
-            cursor.execute('''
-                SELECT p.id, p.fecha, p.legajo, p.tipo_prueba,
-                       e.nombre, p.total, p.estado
-                FROM pruebas p
-                JOIN empresa e ON p.empresa_id = e.id
-                WHERE p.fecha = %s
-                ORDER BY p.id
-            ''', (fecha,))
-
-        elif op == '3':
-            legajo = pedir_texto('Ingrese legajo: ')
-            cursor.execute('''
-                SELECT p.id, p.fecha, p.legajo, p.tipo_prueba,
-                       e.nombre, p.total, p.estado
-                FROM pruebas p
-                JOIN empresa e ON p.empresa_id = e.id
-                WHERE p.legajo = %s
-                ORDER BY p.fecha
-            ''', (legajo,))
-
-        elif op == '4':
-            empresas = listar_empresas()
-            if not empresas:
-                conn.close()
-                return
-
-            empresa_id = pedir_entero('Ingrese ID de empresa: ', 1)
-            cursor.execute('''
-                SELECT p.id, p.fecha, p.legajo, p.tipo_prueba,
-                       e.nombre, p.total, p.estado
-                FROM pruebas p
-                JOIN empresa e ON p.empresa_id = e.id
-                WHERE p.empresa_id = %s
-                ORDER BY p.fecha
-            ''', (empresa_id,))
-
-        elif op == '0':
-            conn.close()
-            break
-
-        else:
-            print('Opcion invalida.')
-            conn.close()
-            continue
-
-        filas = cursor.fetchall()
-        conn.close()
-
-        if not filas:
-            print('\nNo se encontraron resultados.')
-            continue
-
-        print('\nID | Fecha      | Legajo | Tipo | Empresa          | Total  | Estado')
-        print('-' * 75)
-        for f in filas:
-            fecha_str = f[1].strftime('%Y-%m-%d')
-            print(
-                f'{f[0]:<3}| {fecha_str:<10} | {f[2]:<6} | '
-                f'{f[3]:<4} | {f[4]:<14} | {f[5]:<6} | {f[6]}'
-            )
 
 # -----------------------------
 # [B] Empresas
@@ -614,6 +691,7 @@ def total_del_dia():
             WHERE fecha = %s
               AND empresa_id = %s
               AND estado = 'HECHA'
+              AND estado_pago = 'PAGADO'
         ''', (fecha, empresa_id))
     else:
         cursor.execute('''
@@ -647,6 +725,7 @@ def total_por_rango():
             FROM pruebas
             WHERE empresa_id = %s
               AND estado = 'HECHA'
+              AND estado_pago = 'PAGADO'
               AND fecha BETWEEN %s AND %s
         ''', (empresa_id, fecha_desde, fecha_hasta))
     else:
@@ -836,7 +915,7 @@ def exportar_excel_mes():
 
     print('\n✅ Excel generado correctamente:')
     print(archivo)
-
+    
 # -----------------------------
 # Main
 # -----------------------------
