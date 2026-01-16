@@ -397,6 +397,7 @@ def buscar_pruebas():
                     p.estado_pago
                 FROM pruebas p
                 JOIN empresa e ON p.empresa_id = e.id
+                WHERE p.id = %s
             ''', (prueba_id,))
 
         elif op == '2':
@@ -413,6 +414,7 @@ def buscar_pruebas():
                     p.estado_pago
                 FROM pruebas p
                 JOIN empresa e ON p.empresa_id = e.id
+                WHERE p.fecha = %s
             ''', (fecha,))
 
         elif op == '3':
@@ -429,6 +431,7 @@ def buscar_pruebas():
                     p.estado_pago
                 FROM pruebas p
                 JOIN empresa e ON p.empresa_id = e.id
+                WHERE p.legajo = %s
             ''', (legajo,))
 
         elif op == '4':
@@ -450,6 +453,7 @@ def buscar_pruebas():
                     p.estado_pago
                 FROM pruebas p
                 JOIN empresa e ON p.empresa_id = e.id
+                WHERE p.empresa_id = %s
             ''', (empresa_id,))
 
         elif op == '5':
@@ -502,7 +506,8 @@ def menu_estados_pruebas():
     while True:
         print('\n--- ESTADOS / PAGOS ---')
         print('[1] Marcar prueba como NO HECHA')
-        print('[2] Marcar prueba como PAGADA')
+        print('[2] Marcar prueba como PAGADA (una)')
+        print('[3] Marcar PAGADAS por rango de fechas')
         print('[0] Volver')
 
         op = pedir_texto('Opcion: ')
@@ -511,6 +516,8 @@ def menu_estados_pruebas():
             marcar_no_hecha()
         elif op == '2':
             marcar_pagada()
+        elif op == '3':
+            marcar_pagadas_por_rango()
         elif op == '0':
             break
         else:
@@ -560,7 +567,50 @@ def marcar_pagada():
         print('Prueba marcada como PAGADA.')
 
     conn.commit()
-    conn.close()           
+    conn.close()  
+
+# --- [3] Marcar pruebas como PAGADA POR RANGO ---             
+def marcar_pagadas_por_rango():
+    print('\n--- MARCAR PAGADAS POR RANGO DE FECHAS ---')
+
+    # Elegir empresa
+    empresas = listar_empresas()
+    print('\n[0] Todas las empresas')
+    empresa_id = pedir_entero('Seleccione ID de empresa: ', 0)
+
+    print('\nFecha DESDE:')
+    fecha_desde = pedir_fecha()
+
+    print('\nFecha HASTA:')
+    fecha_hasta = pedir_fecha()
+
+    conn = conectar()
+    cursor = conn.cursor()
+
+    query = '''
+        UPDATE pruebas
+        SET estado_pago = 'PAGADO'
+        WHERE estado = 'HECHA'
+          AND estado_pago = 'NO PAGADO'
+          AND fecha BETWEEN %s AND %s
+    '''
+
+    params = [fecha_desde, fecha_hasta]
+
+    if empresa_id != 0:
+        query += ' AND empresa_id = %s'
+        params.append(empresa_id)
+
+    cursor.execute(query, params)
+    cantidad = cursor.rowcount
+
+    conn.commit()
+    conn.close()
+
+    if cantidad == 0:
+        print('\nNo se encontraron pruebas para marcar como PAGADAS.')
+    else:
+        print(f'\n✅ {cantidad} pruebas marcadas como PAGADAS.')
 
 # === [6] Eliminar pruebas ===
 def eliminar_prueba():
