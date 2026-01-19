@@ -506,7 +506,7 @@ def menu_estados_pruebas():
     while True:
         print('\n--- ESTADOS / PAGOS ---')
         print('[1] Marcar prueba como NO HECHA')
-        print('[2] Marcar prueba como PAGADA (una)')
+        print('[2] Marcar prueba como PAGADA (por legajo)')
         print('[3] Marcar PAGADAS por rango de fechas')
         print('[0] Volver')
 
@@ -544,30 +544,55 @@ def marcar_no_hecha():
 
 # --- [2] Marcar pruebas como PAGADA ---
 def marcar_pagada():
-    mostrar_pruebas()
-
-    prueba_id = pedir_entero(
-        '\nIngrese el ID de la prueba a marcar como PAGADA: ', 1
+    legajo = pedir_texto(
+        '\nIngrese el LEGAJO a marcar como PAGADO: '
     )
 
     conn = conectar()
     cursor = conn.cursor()
 
     cursor.execute('''
+        SELECT id, fecha, total
+        FROM pruebas
+        WHERE legajo = %s
+          AND estado = 'HECHA'
+          AND estado_pago = 'NO PAGADO'
+        ORDER BY fecha DESC
+        LIMIT 1
+    ''', (legajo,))
+
+    fila = cursor.fetchone()
+
+    if not fila:
+        print('\n❌ No hay pruebas HECHAS y NO PAGADAS para ese legajo.')
+        conn.close()
+        return
+
+    prueba_id, fecha, total = fila
+
+    print(f'''
+Se marcará como PAGADA la siguiente prueba:
+Legajo: {legajo}
+Fecha: {fecha}
+Total: {total} Gs
+''')
+
+    confirmar = pedir_texto('Confirmar? (SI/NO): ').upper()
+    if confirmar != 'SI':
+        print('Operación cancelada.')
+        conn.close()
+        return
+
+    cursor.execute('''
         UPDATE pruebas
         SET estado_pago = 'PAGADO'
         WHERE id = %s
-          AND estado = 'HECHA'
-          AND estado_pago = 'NO PAGADO'
     ''', (prueba_id,))
 
-    if cursor.rowcount == 0:
-        print('La prueba no existe, no está HECHA o ya está PAGADA.')
-    else:
-        print('Prueba marcada como PAGADA.')
-
     conn.commit()
-    conn.close()  
+    conn.close()
+
+    print('\n✅ Prueba marcada como PAGADA correctamente.')  
 
 # --- [3] Marcar pruebas como PAGADA POR RANGO ---             
 def marcar_pagadas_por_rango():
