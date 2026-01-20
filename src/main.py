@@ -1,6 +1,5 @@
 from database_pg import conectar, crear_tablas
 from datetime import date
-import pandas as pd
 from pathlib import Path
 
 # -----------------------------
@@ -899,6 +898,7 @@ def menu_exportar():
 
 # --- [1] Exportar a Excel ---
 def exportar_excel():
+    import pandas as pd
     conn = conectar()
 
     query = '''
@@ -934,6 +934,7 @@ def exportar_excel():
 
 # --- [2] Exportar a Excel por mes ---    
 def exportar_excel_mes():
+    import pandas as pd
     print('\n--- EXPORTAR EXCEL POR RANGO DE FECHAS ---')
 
     print('\nFecha DESDE:')
@@ -995,8 +996,6 @@ def exportar_excel_mes():
 # Main
 # -----------------------------
 def main():
-    crear_tablas()
-
     while True:
         mostrar_menu()
         option = pedir_texto('\nSeleccione opcion: ').lower()
