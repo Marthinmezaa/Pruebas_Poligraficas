@@ -11,7 +11,7 @@ DB_CONFIG = {
     'password': os.getenv('DB_PASSWORD'),
     'sslmode': os.getenv('DB_SSLMODE', 'require')
 }
-
+ 
 def conectar():
     return psycopg2.connect(**DB_CONFIG)
 
