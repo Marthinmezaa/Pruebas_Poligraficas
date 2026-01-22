@@ -1,68 +1,38 @@
 # Sistema de Gestión de Pruebas Poligráficas
 
-Aplicación de consola desarrollada en Python para la gestión de pruebas poligráficas,
-empresas, estados de realización y pagos, con generación de reportes y exportación a Excel.
+Aplicación de línea de comandos (CLI) desarrollada en Python para la administración eficiente de pruebas poligráficas, gestión de cobranzas a empresas y generación de reportes financieros.
 
----
+## Características Principales
 
-## Funcionalidades principales
+* **Gestión de Pruebas:** Registro, edición, búsqueda y eliminación de pruebas.
+* **Gestión de Empresas:** Administración de clientes corporativos y precios personalizados.
+* **Control de Pagos:**
+    * Cobro individual por legajo.
+    * **Cobro Masivo:** Actualización de estados de pago por rango de fechas en lote.
+* **Reportes Financieros:** Cálculo de totales diarios, mensuales y dinero perdido (pruebas no realizadas).
+* **Exportación de Datos:** Generación de reportes en Excel (`.xlsx`) utilizando Pandas.
+* **Base de Datos:** Persistencia robusta con PostgreSQL.
 
-### Pruebas
-- Registrar pruebas poligráficas
-- Editar y eliminar pruebas
-- Marcar pruebas como HECHAS / NO HECHAS
-- Marcar pruebas como PAGADAS (una o por rango de fechas)
-- Buscar pruebas por:
-  - ID
-  - Fecha
-  - Legajo
-  - Empresa
-  - Última prueba HECHA por legajo
+## Tecnologías Utilizadas
 
----
+* **Lenguaje:** Python 3.x
+* **Base de Datos:** PostgreSQL
+* **Librerías Clave:**
+    * `psycopg2`: Conexión y transacciones seguras a BD.
+    * `pandas`: Procesamiento de datos y exportación.
+    * `python-dotenv`: Gestión de variables de entorno.
 
-### Empresas
-- Cargar empresas
-- Listar empresas
-- Precio por prueba asociado a cada empresa
+## Estructura del Proyecto
 
----
+El proyecto sigue una arquitectura modular para facilitar la escalabilidad:
 
-### Totales y reportes
-- Total del día (solo pruebas HECHAS y PAGADAS)
-- Total por rango de fechas
-- Reporte de pruebas NO HECHAS (dinero perdido)
-- Filtros por empresa o todas
-
----
-
-### Exportación
-- Exportar todas las pruebas a Excel
-- Exportar pruebas por rango de fechas y empresa
-
----
-
-## Base de datos
-
-- PostgreSQL (Neon)
-- Tablas principales:
-  - `empresa`
-  - `pruebas`
-
-Estados utilizados:
-- `estado`: HECHA / NO HECHA
-- `estado_pago`: PAGADO / NO PAGADO
-
----
-
-## Requisitos
-
-- Python 3.10+
-- Librerías:
-  - psycopg2
-  - pandas
-  - openpyxl
-
-Instalación de dependencias:
-```bash
-pip install psycopg2 pandas openpyxl
+```text
+PROYECTO/
+├── .env                # Variables de entorno (No incluido en repo)
+├── run.py              # Punto de entrada de la aplicación
+├── requirements.txt    # Dependencias del proyecto
+├── exports/            # Carpeta de salida para reportes Excel
+└── src/
+    ├── app.py          # Lógica de menús y flujo de la aplicación
+    ├── database.py     # Capa de acceso a datos (DAO Pattern)
+    └── utils.py        # Funciones auxiliares y validaciones

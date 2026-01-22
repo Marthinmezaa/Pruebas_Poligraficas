@@ -1,4 +1,18 @@
+# --- Seguridad ---
 .env
+
+# --- Python ---
 __pycache__/
-venv/
 *.pyc
+venv/
+.pytest_cache/
+
+# --- Datos generados (Excel) ---
+exports/*.xlsx
+
+# --- Archivos de Sistema Operativo ---
+.DS_Store
+Thumbs.db
+
+# --- IDEs ---
+.vscode/
