@@ -249,3 +249,57 @@ def db_marcar_pagado_masivo(fecha_desde, fecha_hasta, empresa_id=0):
         cantidad_actualizada = cursor.rowcount
     
     return cantidad_actualizada
+
+# --- FUNCIONES PARA EXPORTAR ---
+def db_obtener_datos_exportacion_todo():
+    sql = """
+        SELECT 
+            p.id, 
+            p.fecha, 
+            p.legajo, 
+            p.tipo_prueba, 
+            e.nombre AS empresa, 
+            p.total, 
+            p.estado,
+            p.estado_pago
+        FROM pruebas p 
+        JOIN empresa e ON p.empresa_id = e.id 
+        ORDER BY fecha
+    """
+    with obtener_cursor() as cursor:
+        cursor.execute(sql)
+        columnas = [desc[0] for desc in cursor.description]
+        filas = cursor.fetchall()
+        
+    return columnas, filas
+
+def db_obtener_datos_exportacion_rango(fecha_desde, fecha_hasta, empresa_id=0):
+    sql = """
+        SELECT 
+            p.id, 
+            p.fecha, 
+            p.legajo, 
+            p.tipo_prueba, 
+            e.nombre AS empresa, 
+            p.total, 
+            p.estado,
+            p.estado_pago
+        FROM pruebas p 
+        JOIN empresa e ON p.empresa_id = e.id 
+        WHERE p.estado = 'HECHA' 
+          AND p.fecha BETWEEN %s AND %s
+    """
+    params = [fecha_desde, fecha_hasta]
+
+    if empresa_id and empresa_id != 0:
+        sql += " AND e.id = %s"
+        params.append(empresa_id)
+
+    sql += " ORDER BY p.fecha"
+
+    with obtener_cursor() as cursor:
+        cursor.execute(sql, tuple(params))
+        columnas = [desc[0] for desc in cursor.description]
+        filas = cursor.fetchall()
+
+    return columnas, filas

@@ -1,69 +1,21 @@
-# main.py
-from database_pg import (
+# src/app.py
+from pathlib import Path
+
+from .database import (
     crear_tablas, agregar_pruebas, obtener_precio_empresa, obtener_todas_empresas, 
     eliminar_prueba, buscar_pruebas_dinamico, actualizar_prueba, 
     db_calcular_total_cobrado, db_obtener_pruebas_perdidas, 
     db_buscar_deuda_legajo, db_marcar_pagado_individual, db_marcar_pagado_masivo,
-    _conectar # Solo para el exportar Excel por ahora
+    db_obtener_datos_exportacion_todo, db_obtener_datos_exportacion_rango
 )
-from datetime import date
-from pathlib import Path
+from .utils import (
+    pedir_texto, pedir_entero, pedir_fecha, pedir_tipo_prueba,
+    ANCHO_EMPRESA, LINEA
+)
 
 # -----------------------------
-# Constantes
+# Funciones Auxiliares del Menú
 # -----------------------------
-ANCHO_EMPRESA = 25
-LINEA = '-' * 95
-
-# -----------------------------
-# Entradas seguras
-# -----------------------------
-def pedir_texto(mensaje):
-    while True:
-        valor = input(mensaje).strip()
-        if valor:
-            return valor
-        print('No puede estar vacio.')
-
-def pedir_entero(mensaje, minimo=None, maximo=None):
-    while True:
-        try:
-            valor = int(input(mensaje).strip())
-            if minimo is not None and valor < minimo:
-                print(f'Debe ser >= {minimo}')
-                continue
-            if maximo is not None and valor > maximo:
-                print(f'Debe ser <= {maximo}')
-                continue
-            return valor
-        except ValueError:
-            print('Ingrese numero valido.')
-
-def pedir_fecha():
-    print('Fecha de la prueba:')
-    print('[Enter] para usar la fecha de hoy')
-    opcion = input('Presione Enter o escriba cualquier tecla para fecha manual: ').strip()
-
-    if not opcion:
-        return date.today().isoformat()
-
-    while True:
-        try:
-            anio = pedir_entero('Año (YYYY): ', 1900, 2100)
-            mes = pedir_entero('Mes (MM): ', 1, 12)
-            dia = pedir_entero('Día (DD): ', 1, 31)
-            fecha = date(anio, mes, dia)
-            return fecha.isoformat()
-        except ValueError:
-            print('Fecha inválida. Intente nuevamente.')
-
-def pedir_tipo_prueba():
-    while True:
-        tipo = pedir_texto('Tipo de prueba (PRE, RUT, POST): ').upper()
-        if tipo in ('PRE', 'RUT', 'POST'):
-            return tipo
-        print('Tipo invalido. Use PRE, RUT o POST.')
-        
 def elegir_empresa_o_todas():
     print('\n[0] TODAS las empresas')
     opcion = pedir_entero('Seleccione ID de empresa (0 = todas): ', 0)
@@ -129,13 +81,12 @@ def agg_prueba():
         print('Error: La empresa no existe!.')
         return
     
-    # CORREGIDO: Eliminamos el bloque duplicado recursivo
     try:
         id_nuevo = agregar_pruebas(fecha_test, legajo_numero, tipo_prueba, empresa_id, precio)
-        print(f'\n✅ Prueba #{id_nuevo} cargada exitosamente.')
+        print(f'\nPrueba #{id_nuevo} cargada exitosamente.')
         print(f'Total a cobrar: {precio} Gs.')
     except Exception as e:
-        print(f"\n❌ Ocurrió un error al guardar: {e}")        
+        print(f"\nOcurrió un error al guardar: {e}")        
 
 def menu_ver_pruebas():
     while True:
@@ -156,9 +107,7 @@ def menu_ver_pruebas():
             print('Opcion invalida.')
 
 def mostrar_pruebas(no_hechas=False):
-    # CORREGIDO: Ahora usa buscar_pruebas_dinamico en lugar de SQL crudo
     filtro = "p.estado = 'NO HECHA'" if no_hechas else ""
-    # Llamamos a nuestra función "navaja suiza"
     filas = buscar_pruebas_dinamico(filtro, ())
 
     if not filas:
@@ -169,7 +118,6 @@ def mostrar_pruebas(no_hechas=False):
     print(LINEA)
     for f in filas:
         fecha_str = str(f[1])
-        # f es: (id, fecha, legajo, tipo, nombre_empresa, total, estado, pago, id_empresa)
         print(
             f'{f[0]:<3}| {fecha_str:<10} | {f[2]:<6} | '
             f'{f[3]:<4} | {f[4]:<{ANCHO_EMPRESA}} | '
@@ -181,38 +129,30 @@ def editar_prueba():
     prueba_id = pedir_entero('Ingrese el ID de la prueba a editar: ', 1)
 
     resultados = buscar_pruebas_dinamico("p.id = %s", (prueba_id,))
-
     if not resultados:
         print('Prueba no encontrada.')
         return
 
     actual = resultados[0]
-
     fecha_old, legajo_old, tipo_old = actual[1], actual[2], actual[3]
     total_old, estado_old = actual[5], actual[6]
-
     empresa_old_id = actual[8] 
 
     print(f'\nEditando prueba #{prueba_id}')
     print('--- Deje ENTER para mantener el valor actual ---')
 
-    # --- FECHA ---
     nueva_fecha = input(f'Fecha [{fecha_old}]: ').strip()
     fecha_final = nueva_fecha if nueva_fecha else fecha_old
 
-    # --- LEGAJO ---
     nuevo_legajo = input(f'Legajo [{legajo_old}]: ').strip()
     legajo_final = nuevo_legajo if nuevo_legajo else legajo_old
 
-    # --- TIPO ---
     nuevo_tipo = input(f'Tipo [{tipo_old}]: ').strip().upper()
     tipo_final = nuevo_tipo if nuevo_tipo else tipo_old
 
-    # --- ESTADO ---
     nuevo_estado = input(f'Estado [{estado_old}]: ').strip().upper()
     estado_final = nuevo_estado if nuevo_estado else estado_old
 
-    # --- EMPRESA ---
     print('\nSi cambia la empresa, se recalculará el precio.')
     nueva_empresa_str = input(f'ID Nueva Empresa (Actual: {empresa_old_id}): ').strip()
 
@@ -222,18 +162,14 @@ def editar_prueba():
     if nueva_empresa_str:
         empresa_final_id = int(nueva_empresa_str)
         nuevo_precio = obtener_precio_empresa(empresa_final_id)
-
         if nuevo_precio is None:
-            print("❌ Empresa no válida. Cancelando edición.")
+            print("Empresa no válida. Cancelando edición.")
             return
-        
         total_final = nuevo_precio
-        print(f"⚠️ Empresa cambiada. Nuevo precio actualizado a: {total_final}")
+        print(f"Empresa cambiada. Nuevo precio actualizado a: {total_final}")
     else:
         empresa_final_id = empresa_old_id
 
-
-    # --- GUARDAR ---
     try:
         exito = actualizar_prueba(
             prueba_id, fecha_final, legajo_final, tipo_final, 
@@ -281,7 +217,6 @@ def buscar_pruebas():
         print('\nNo se encontraron resultados.')
     else:
         print(f"\nSe encontraron {len(resultados)} pruebas:")
-        # Reutilizamos el formato visual de mostrar_pruebas imprimiendo manualmente
         print('\nID | Fecha      | Legajo | Tipo | Empresa                   | Total   | Estado   | Pago')
         print(LINEA)
         for r in resultados:
@@ -299,9 +234,9 @@ def opcion_eliminar_prueba():
     
     se_borro = eliminar_prueba(prueba_id)
     if se_borro:
-        print(f'\n✅ Prueba {prueba_id} eliminada correctamente.')
+        print(f'\nPrueba {prueba_id} eliminada correctamente.')
     else:
-        print(f'\n⚠️ No se encontró ninguna prueba con el ID {prueba_id}.')
+        print(f'\nNo se encontró ninguna prueba con el ID {prueba_id}.')
 
 # -----------------------------
 # [A-5] Estados y Pagos
@@ -330,21 +265,10 @@ def menu_estados_pruebas():
 def marcar_no_hecha():
     mostrar_pruebas()
     prueba_id = pedir_entero('\nIngrese el ID a marcar como NO HECHA: ', 1)
-    
-    # Aquí podríamos hacer una función en DB, pero reutilizamos actualizar_prueba?
-    # Mejor una update simple, o dejarlo como estaba pero usando actualizar_prueba es más seguro.
-    # Por ahora dejemos tu lógica pero usando el cursor seguro si quisieras.
-    # Pero como 'actualizar_prueba' pide TODOS los datos, es complejo.
-    # Vamos a crear una mini función 'cambiar_estado' o usar SQL directo controlado aquí por simplicidad hoy.
-    # O MEJOR: Usamos 'actualizar_prueba' pero primero obtenemos los datos? No, es muy largo.
-    # Usemos SQL directo pero con el context manager _conectar NO, usemos obtener_cursor de DB.
-    
-    # Pequeño "hack" para no crear otra función en DB ahora mismo:
-    # (Idealmente crearías db_cambiar_estado(id, estado) en database_pg)
-    from database_pg import obtener_cursor
+
+    from .database import obtener_cursor
     with obtener_cursor() as cursor:
         cursor.execute('UPDATE pruebas SET estado = %s WHERE id = %s', ('NO HECHA', prueba_id))
-    
     print('\nPrueba marcada como NO HECHA.')
 
 def marcar_pagada():
@@ -369,7 +293,7 @@ def marcar_pagada():
     confirmar = pedir_texto('¿Confirmar pago? (SI/NO): ').upper()
     if confirmar == 'SI':
         if db_marcar_pagado_individual(prueba_id):
-           print('\n✅ ¡Pago registrado correctamente!')
+           print('\n¡Pago registrado correctamente!')
         else:
             print('\nError extraño: No se pudo actualizar.')
     else:
@@ -393,7 +317,7 @@ def marcar_pagadas_por_rango():
     if cantidad == 0:
         print('\nNo se encontraron pruebas pendientes en ese rango.')
     else:
-        print(f'\n💰 ¡ÉXITO! Se marcaron {cantidad} pruebas como PAGADAS.')
+        print(f'\n¡ÉXITO! Se marcaron {cantidad} pruebas como PAGADAS.')
 
 # -----------------------------
 # [B] Empresas
@@ -419,12 +343,10 @@ def cargar_empresa():
     nombre = pedir_texto('Nombre de la empresa: ')
     precio = pedir_entero('Precio por prueba (Gs): ', 1)
     
-    # Usamos un cursor rápido aquí o creamos función en DB. 
-    # Por agilidad, SQL directo seguro:
-    from database_pg import obtener_cursor
+    from .database import obtener_cursor
     with obtener_cursor() as cursor:
         cursor.execute('INSERT INTO empresa (nombre, precio_por_prueba) VALUES (%s, %s)', (nombre, precio))
-    print('\n✅ Empresa cargada correctamente.')
+    print('\nEmpresa cargada correctamente.')
 
 def listar_empresas():
     empresas = obtener_todas_empresas()
@@ -515,7 +437,7 @@ def pruebas_no_hechas_reporte():
     print(f'TOTAL PERDIDO: {total_perdido} Gs')
 
 # -----------------------------
-# [D] Exportar (PENDIENTE DE MEJORA EN SIGUIENTE PASO)
+# [D] Exportar
 # -----------------------------
 def menu_exportar():
     while True:
@@ -536,68 +458,51 @@ def menu_exportar():
 
 def exportar_excel():
     import pandas as pd
-    # Mantenemos esto por ahora hasta el próximo paso
-    conn = _conectar()
-    query = '''
-        SELECT p.id, p.fecha, p.legajo, p.tipo_prueba, e.nombre AS empresa, p.total, p.estado
-        FROM pruebas p JOIN empresa e ON p.empresa_id = e.id ORDER BY fecha
-    '''
-    df = pd.read_sql_query(query, conn)
-    conn.close()
+    print("Generando reporte completo...")
+    columnas, filas = db_obtener_datos_exportacion_todo()
 
-    if df.empty:
-        print('\nNo hay datos para exportar')
+    if not filas:
+        print('\nNo hay datos para exportar.')
         return
     
+    df = pd.DataFrame(filas, columns=columnas)
+    
+    # Path logic: como app.py está en src/, subimos DOS niveles (..) para llegar a la raíz
     base_dir = Path(__file__).resolve().parent.parent
     export_dir = base_dir / 'exports'
     export_dir.mkdir(exist_ok=True)
-    archivo = export_dir / 'pruebas_poligraficas.xlsx'
+    archivo = export_dir / 'pruebas_poligraficas_completo.xlsx'
     df.to_excel(archivo, index=False)
     print(f'\nArchivo Excel generado correctamente.\n{archivo}')
 
 def exportar_excel_mes():
     import pandas as pd
-    print('\n--- EXPORTAR EXCEL POR RANGO DE FECHAS ---')
+    print('\n--- EXPORTAR EXCEL POR RANGO ---')
     print('\nFecha DESDE:')
     fecha_desde = pedir_fecha()
     print('\nFecha HASTA:')
     fecha_hasta = pedir_fecha()
-    
-    print('\n[0] Todas las empresas')
-    empresa_id = pedir_entero('Seleccione ID de empresa: ', 0)
+    empresa_id = elegir_empresa_o_todas()
+    print("Consultando base de datos...")
 
-    conn = _conectar()
-    query = '''
-        SELECT p.id, p.fecha, p.legajo, p.tipo_prueba, e.nombre AS empresa, p.total, p.estado
-        FROM pruebas p JOIN empresa e ON p.empresa_id = e.id
-        WHERE p.estado = 'HECHA' AND p.fecha BETWEEN %s AND %s
-    '''
-    params = [fecha_desde, fecha_hasta]
-    if empresa_id != 0:
-        query += ' AND e.id = %s'
-        params.append(empresa_id)
-    query += ' ORDER BY p.fecha'
+    columnas, filas = db_obtener_datos_exportacion_rango(fecha_desde, fecha_hasta, empresa_id)
 
-    df = pd.read_sql_query(query, conn, params=params)
-    conn.close()
-
-    if df.empty:
+    if not filas:
         print('\nNo hay datos para exportar en ese período.')
         return
+
+    df = pd.DataFrame(filas, columns=columnas)
 
     base_dir = Path(__file__).resolve().parent.parent
     export_dir = base_dir / 'exports'
     export_dir.mkdir(exist_ok=True)
-    nombre_empresa = 'todas' if empresa_id == 0 else f'empresa_{empresa_id}'
+    nombre_empresa = 'todas' if not empresa_id else f'empresa_{empresa_id}'
     archivo = export_dir / f'pruebas_{nombre_empresa}_{fecha_desde}_a_{fecha_hasta}.xlsx'
     df.to_excel(archivo, index=False)
-    print(f'\n✅ Excel generado correctamente:\n{archivo}')
+    print(f'\nExcel generado correctamente:\n{archivo}')
 
-# -----------------------------
-# Main
-# -----------------------------
-def main():
+# --- Start ---
+def run():
     while True:
         mostrar_menu()
         option = pedir_texto('\nSeleccione opcion: ').lower()
@@ -614,6 +519,3 @@ def main():
             menu_exportar()
         else:
             print('Opcion invalida.')
-
-if __name__ == '__main__':
-    main()
