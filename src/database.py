@@ -147,7 +147,6 @@ def actualizar_prueba(id_prueba, fecha, legajo, tipo, empresa_id, total, estado)
             estado = %s
         WHERE id = %s
     """
-    # El orden debe coincidir con los %s
     params = (fecha, legajo, tipo, empresa_id, total, estado, id_prueba)
 
     with obtener_cursor() as cursor:
@@ -250,18 +249,15 @@ def db_marcar_pagado_masivo(fecha_desde, fecha_hasta, empresa_id=0):
     
     return cantidad_actualizada
 
-# --- FUNCIONES PARA EXPORTAR ---
+# -----------------------------
+# Funciones de Exportación
+# -----------------------------
+
 def db_obtener_datos_exportacion_todo():
     sql = """
         SELECT 
-            p.id, 
-            p.fecha, 
-            p.legajo, 
-            p.tipo_prueba, 
-            e.nombre AS empresa, 
-            p.total, 
-            p.estado,
-            p.estado_pago
+            p.id, p.fecha, p.legajo, p.tipo_prueba, 
+            e.nombre AS empresa, p.total, p.estado, p.estado_pago
         FROM pruebas p 
         JOIN empresa e ON p.empresa_id = e.id 
         ORDER BY fecha
@@ -270,36 +266,49 @@ def db_obtener_datos_exportacion_todo():
         cursor.execute(sql)
         columnas = [desc[0] for desc in cursor.description]
         filas = cursor.fetchall()
-        
     return columnas, filas
 
 def db_obtener_datos_exportacion_rango(fecha_desde, fecha_hasta, empresa_id=0):
     sql = """
         SELECT 
-            p.id, 
-            p.fecha, 
-            p.legajo, 
-            p.tipo_prueba, 
-            e.nombre AS empresa, 
-            p.total, 
-            p.estado,
-            p.estado_pago
+            p.id, p.fecha, p.legajo, p.tipo_prueba, 
+            e.nombre AS empresa, p.total, p.estado, p.estado_pago
         FROM pruebas p 
         JOIN empresa e ON p.empresa_id = e.id 
         WHERE p.estado = 'HECHA' 
           AND p.fecha BETWEEN %s AND %s
     """
     params = [fecha_desde, fecha_hasta]
-
     if empresa_id and empresa_id != 0:
         sql += " AND e.id = %s"
         params.append(empresa_id)
-
     sql += " ORDER BY p.fecha"
 
     with obtener_cursor() as cursor:
         cursor.execute(sql, tuple(params))
         columnas = [desc[0] for desc in cursor.description]
         filas = cursor.fetchall()
-
     return columnas, filas
+
+# -----------------------------
+# GESTIÓN DE EMPRESAS
+# -----------------------------
+
+def obtener_empresa_por_id(empresa_id):
+    """Retorna (id, nombre, precio) de una empresa específica"""
+    sql = "SELECT id, nombre, precio_por_prueba FROM empresa WHERE id = %s"
+    with obtener_cursor() as cursor:
+        cursor.execute(sql, (empresa_id,))
+        return cursor.fetchone()
+
+def actualizar_empresa(id_empresa, nuevo_nombre, nuevo_precio):
+    sql = "UPDATE empresa SET nombre = %s, precio_por_prueba = %s WHERE id = %s"
+    with obtener_cursor() as cursor:
+        cursor.execute(sql, (nuevo_nombre, nuevo_precio, id_empresa))
+        return cursor.rowcount > 0
+
+def eliminar_empresa(id_empresa):
+    sql = "DELETE FROM empresa WHERE id = %s"
+    with obtener_cursor() as cursor:
+        cursor.execute(sql, (id_empresa,))
+        return cursor.rowcount > 0

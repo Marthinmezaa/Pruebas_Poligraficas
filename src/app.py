@@ -6,7 +6,8 @@ from .database import (
     eliminar_prueba, buscar_pruebas_dinamico, actualizar_prueba, 
     db_calcular_total_cobrado, db_obtener_pruebas_perdidas, 
     db_buscar_deuda_legajo, db_marcar_pagado_individual, db_marcar_pagado_masivo,
-    db_obtener_datos_exportacion_todo, db_obtener_datos_exportacion_rango
+    db_obtener_datos_exportacion_todo, db_obtener_datos_exportacion_rango, 
+    obtener_empresa_por_id, actualizar_empresa, eliminar_empresa
 )
 from .utils import (
     pedir_texto, pedir_entero, pedir_fecha, pedir_tipo_prueba,
@@ -327,6 +328,8 @@ def menu_empresas():
         print('\n--- EMPRESAS ---')
         print('[1] Cargar empresa')
         print('[2] Listar empresas')
+        print('[3] Editar empresa')   # <-- Nuevo
+        print('[4] Eliminar empresa') # <-- Nuevo
         print('[0] Volver')
         op = pedir_texto('Opcion: ')
 
@@ -334,6 +337,10 @@ def menu_empresas():
             cargar_empresa()
         elif op == '2':
             listar_empresas()
+        elif op == '3':
+            editar_empresa_ui()       # <-- Nueva función
+        elif op == '4':
+            eliminar_empresa_ui()     # <-- Nueva función
         elif op == '0':
             break
         else:
@@ -346,7 +353,7 @@ def cargar_empresa():
     from .database import obtener_cursor
     with obtener_cursor() as cursor:
         cursor.execute('INSERT INTO empresa (nombre, precio_por_prueba) VALUES (%s, %s)', (nombre, precio))
-    print('\nEmpresa cargada correctamente.')
+    print('\n✅ Empresa cargada correctamente.')
 
 def listar_empresas():
     empresas = obtener_todas_empresas()
@@ -359,6 +366,118 @@ def listar_empresas():
     for e in empresas:
         print(f'{e[0]:<3}| {e[1]:<20} | {e[2]} Gs')
     return empresas
+
+# -----------------------------
+# [B] Empresas
+# -----------------------------
+def menu_empresas():
+    while True:
+        print('\n--- EMPRESAS ---')
+        print('[1] Cargar empresa')
+        print('[2] Listar empresas')
+        print('[3] Editar empresa')  
+        print('[4] Eliminar empresa') 
+        print('[0] Volver')
+        op = pedir_texto('Opcion: ')
+
+        if op == '1':
+            cargar_empresa()
+        elif op == '2':
+            listar_empresas()
+        elif op == '3':
+            editar_empresa_ui()       
+        elif op == '4':
+            eliminar_empresa_ui()    
+        elif op == '0':
+            break
+        else:
+            print('Opcion invalida.')
+
+def cargar_empresa():
+    nombre = pedir_texto('Nombre de la empresa: ')
+    precio = pedir_entero('Precio por prueba (Gs): ', 1)
+    
+    from .database import obtener_cursor
+    with obtener_cursor() as cursor:
+        cursor.execute('INSERT INTO empresa (nombre, precio_por_prueba) VALUES (%s, %s)', (nombre, precio))
+    print('\n✅ Empresa cargada correctamente.')
+
+def listar_empresas():
+    empresas = obtener_todas_empresas()
+    if not empresas:
+        print('\nError: No hay empresas cargadas.')
+        return []
+    
+    print('\nID | Empresa               | Precio')
+    print('-' * 35)
+    for e in empresas:
+        print(f'{e[0]:<3}| {e[1]:<20} | {e[2]} Gs')
+    return empresas
+
+def editar_empresa_ui():
+    print('\n--- EDITAR EMPRESA ---')
+    listar_empresas()
+    
+    empresa_id = pedir_entero('\nIngrese el ID de la empresa a editar: ', 1)
+    
+    datos = obtener_empresa_por_id(empresa_id)
+    if not datos:
+        print("❌ Empresa no encontrada.")
+        return
+
+    _, nombre_old, precio_old = datos
+    
+    print(f'\nEditando: {nombre_old}')
+    print('--- Deje ENTER para mantener el valor actual ---')
+    
+    nuevo_nombre = input(f'Nombre [{nombre_old}]: ').strip()
+    nombre_final = nuevo_nombre if nuevo_nombre else nombre_old
+    
+    precio_input = input(f'Precio [{precio_old}]: ').strip()
+    if precio_input:
+        try:
+            precio_final = int(precio_input)
+        except ValueError:
+            print("Precio inválido. Se mantiene el anterior.")
+            precio_final = precio_old
+    else:
+        precio_final = precio_old
+        
+    try:
+        if actualizar_empresa(empresa_id, nombre_final, precio_final):
+            print('\nEmpresa actualizada correctamente.')
+        else:
+            print('\nNo se pudo actualizar.')
+    except Exception as e:
+        print(f"Error al actualizar: {e}")
+
+def eliminar_empresa_ui():
+    print('\n--- ELIMINAR EMPRESA ---')
+    listar_empresas()
+    
+    empresa_id = pedir_entero('\nIngrese el ID de la empresa a eliminar: ', 1)
+    
+    # Advertencia de seguridad
+    print("ADVERTENCIA: Si elimina la empresa, debe asegurarse de que NO tenga pruebas registradas.")
+    print("Si tiene pruebas, el sistema protegerá los datos y no permitirá borrarla.")
+    
+    confirmar = pedir_texto('Escriba "SI" para confirmar eliminación: ').upper()
+    if confirmar != 'SI':
+        print("Operación cancelada.")
+        return
+
+    try:
+        if eliminar_empresa(empresa_id):
+            print(f'\nEmpresa {empresa_id} eliminada correctamente.')
+        else:
+            print(f'\nNo se encontró la empresa ID {empresa_id}.')
+    except Exception as e:
+        if "violates foreign key constraint" in str(e):
+            print("\nERROR: No se puede eliminar esta empresa.")
+            print("MOTIVO: Tiene pruebas registradas en el sistema.")
+            print("SOLUCIÓN: Primero elimine o reasigne todas las pruebas de esta empresa.")
+        else:
+            print(f"\nError de base de datos: {e}")
 
 # -----------------------------
 # [C] Totales / Reportes
