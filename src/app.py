@@ -328,8 +328,8 @@ def menu_empresas():
         print('\n--- EMPRESAS ---')
         print('[1] Cargar empresa')
         print('[2] Listar empresas')
-        print('[3] Editar empresa')   # <-- Nuevo
-        print('[4] Eliminar empresa') # <-- Nuevo
+        print('[3] Editar empresa')   
+        print('[4] Eliminar empresa') 
         print('[0] Volver')
         op = pedir_texto('Opcion: ')
 
@@ -338,9 +338,9 @@ def menu_empresas():
         elif op == '2':
             listar_empresas()
         elif op == '3':
-            editar_empresa_ui()       # <-- Nueva función
+            editar_empresa_ui()      
         elif op == '4':
-            eliminar_empresa_ui()     # <-- Nueva función
+            eliminar_empresa_ui()     
         elif op == '0':
             break
         else:
@@ -353,7 +353,7 @@ def cargar_empresa():
     from .database import obtener_cursor
     with obtener_cursor() as cursor:
         cursor.execute('INSERT INTO empresa (nombre, precio_por_prueba) VALUES (%s, %s)', (nombre, precio))
-    print('\n✅ Empresa cargada correctamente.')
+    print('\nEmpresa cargada correctamente.')
 
 def listar_empresas():
     empresas = obtener_todas_empresas()
@@ -400,7 +400,7 @@ def cargar_empresa():
     from .database import obtener_cursor
     with obtener_cursor() as cursor:
         cursor.execute('INSERT INTO empresa (nombre, precio_por_prueba) VALUES (%s, %s)', (nombre, precio))
-    print('\n✅ Empresa cargada correctamente.')
+    print('\nEmpresa cargada correctamente.')
 
 def listar_empresas():
     empresas = obtener_todas_empresas()
@@ -422,7 +422,7 @@ def editar_empresa_ui():
     
     datos = obtener_empresa_por_id(empresa_id)
     if not datos:
-        print("❌ Empresa no encontrada.")
+        print("Empresa no encontrada.")
         return
 
     _, nombre_old, precio_old = datos
