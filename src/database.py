@@ -125,9 +125,9 @@ def buscar_pruebas_dinamico(filtro_sql, datos_tupla):
         JOIN empresa e ON p.empresa_id = e.id
     """
     if filtro_sql:
-        sql_final = f'{sql_base} WHERE {filtro_sql} ORDER BY p.id DESC'
+        sql_final = f'{sql_base} WHERE {filtro_sql} ORDER BY p.id ASC'
     else:
-        sql_final = sql_base + ' ORDER BY p.id DESC'
+        sql_final = sql_base + ' ORDER BY p.id ASC'
 
     with obtener_cursor() as cursor:
         cursor.execute(sql_final, datos_tupla)
