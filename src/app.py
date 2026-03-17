@@ -32,6 +32,28 @@ def mostrar_menu():
     print('[D] Exportar')
     print('[S] Salir')
 
+def submenu_editar_prueba():
+    while True:
+        print('\n--- OPCIONES DE EDICION ---')
+        print('[1] Editar prueba (detalles)')
+        print('[2] Marcar prueba como NO HECHA')
+        print('[3] Marcar prueba como PAGADA (individual)')
+        print('[4] Marcar pruebas como PAGADAS por rango')
+        print('[0] Volver')
+        op = pedir_texto('Opcion: ')
+        if op == '1':
+            editar_prueba()
+        elif op == '2':
+            marcar_no_hecha()
+        elif op == '3':
+            marcar_pagada()
+        elif op == '4':
+            marcar_pagadas_por_rango()
+        elif op == '0':
+            break
+        else:
+            print('Opcion invalida.')
+
 # -----------------------------
 # [A] Pruebas
 # -----------------------------
@@ -42,8 +64,7 @@ def menu_pruebas():
         print('[2] Listado de pruebas')
         print('[3] Editar prueba')
         print('[4] Buscar pruebas')
-        print('[5] Cambiar estado / pago')
-        print('[6] Eliminar prueba')
+        print('[5] Eliminar prueba')
         print('[0] Volver')
 
         op = pedir_texto('Opcion: ')
@@ -53,12 +74,10 @@ def menu_pruebas():
         elif op == '2':
             menu_ver_pruebas()
         elif op == '3':
-            editar_prueba()
+            submenu_editar_prueba()
         elif op == '4':
             buscar_pruebas()
         elif op == '5':
-            menu_estados_pruebas()
-        elif op == '6':
             opcion_eliminar_prueba()
         elif op == '0':
             break
