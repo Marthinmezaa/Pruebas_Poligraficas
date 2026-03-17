@@ -1,4 +1,4 @@
-name: Escudo de Seguridad (CI)
+name: Escudo de Seguridad Python (CI)
 
 on:
   pull_request:
@@ -13,14 +13,17 @@ jobs:
       - name: Descargar el código
         uses: actions/checkout@v4
 
-      - name: Preparar entorno Node.js
-        uses: actions/setup-node@v4
+      - name: Preparar entorno Python
+        uses: actions/setup-python@v5
         with:
-          node-version: "20"
+          python-version: "3.12" # Usa la versión más reciente y estable
 
-      - name: Instalar dependencias
-        run: npm install
+      - name: Instalar dependencias y auditor
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pip-audit
 
       - name: Escanear vulnerabilidades
-        # Esto fallará (y bloqueará el PR) si encuentra vulnerabilidades altas o críticas
-        run: npm audit --audit-level=critical
+        # pip-audit fallará y bloqueará el PR si encuentra librerías con fallos de seguridad
+        run: pip-audit
