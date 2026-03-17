@@ -1,0 +1,26 @@
+name: Escudo de Seguridad (CI)
+
+on:
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  auditoria:
+    name: Escaneo de Vulnerabilidades
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar el código
+        uses: actions/checkout@v4
+
+      - name: Preparar entorno Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Instalar dependencias
+        run: npm install
+
+      - name: Escanear vulnerabilidades
+        # Esto fallará (y bloqueará el PR) si encuentra vulnerabilidades altas o críticas
+        run: npm audit --audit-level=critical

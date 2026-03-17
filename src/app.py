@@ -328,53 +328,6 @@ def menu_empresas():
         print('\n--- EMPRESAS ---')
         print('[1] Cargar empresa')
         print('[2] Listar empresas')
-        print('[3] Editar empresa')   
-        print('[4] Eliminar empresa') 
-        print('[0] Volver')
-        op = pedir_texto('Opcion: ')
-
-        if op == '1':
-            cargar_empresa()
-        elif op == '2':
-            listar_empresas()
-        elif op == '3':
-            editar_empresa_ui()      
-        elif op == '4':
-            eliminar_empresa_ui()     
-        elif op == '0':
-            break
-        else:
-            print('Opcion invalida.')
-
-def cargar_empresa():
-    nombre = pedir_texto('Nombre de la empresa: ')
-    precio = pedir_entero('Precio por prueba (Gs): ', 1)
-    
-    from .database import obtener_cursor
-    with obtener_cursor() as cursor:
-        cursor.execute('INSERT INTO empresa (nombre, precio_por_prueba) VALUES (%s, %s)', (nombre, precio))
-    print('\nEmpresa cargada correctamente.')
-
-def listar_empresas():
-    empresas = obtener_todas_empresas()
-    if not empresas:
-        print('\nError: No hay empresas cargadas.')
-        return []
-    
-    print('\nID | Empresa               | Precio')
-    print('-' * 35)
-    for e in empresas:
-        print(f'{e[0]:<3}| {e[1]:<20} | {e[2]} Gs')
-    return empresas
-
-# -----------------------------
-# [B] Empresas
-# -----------------------------
-def menu_empresas():
-    while True:
-        print('\n--- EMPRESAS ---')
-        print('[1] Cargar empresa')
-        print('[2] Listar empresas')
         print('[3] Editar empresa')  
         print('[4] Eliminar empresa') 
         print('[0] Volver')
