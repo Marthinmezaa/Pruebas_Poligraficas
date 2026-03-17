@@ -14,6 +14,39 @@ from .utils import (
     ANCHO_EMPRESA, LINEA
 )
 
+
+# -----------------------------
+# Clase Navegador (Stack-based Navigation)
+# -----------------------------
+class Navegador:
+    """Gestiona la navegación entre menús usando una pila (stack)."""
+    
+    def __init__(self):
+        self.stack = []
+    
+    def push(self, menu_func):
+        """Apila un menú actual antes de entrar a uno nuevo."""
+        self.stack.append(menu_func)
+    
+    def pop(self):
+        """Desapila y retorna el menú anterior."""
+        if self.stack:
+            return self.stack.pop()
+        return None
+    
+    def puede_volver(self):
+        """Retorna True si hay menús anteriores en el stack."""
+        return len(self.stack) > 0
+    
+    def volver(self):
+        """Simula la acción de presionar 'B' para volver atrás."""
+        return 'volver'
+    
+    def esta_en_menu_principal(self):
+        """Retorna True si estamos en el menú principal (stack vacío)."""
+        return len(self.stack) == 0
+
+
 # -----------------------------
 # Funciones Auxiliares del Menú
 # -----------------------------
@@ -24,15 +57,27 @@ def elegir_empresa_o_todas():
         return None
     return opcion
 
-def mostrar_menu():
+def mostrar_menu(navegador):
+    """Muestra el menú principal con opción de volver contextual."""
     print('\n=== MENU PRINCIPAL ===')
     print('[A] Pruebas')
     print('[B] Empresas')
     print('[C] Totales / Reportes')
     print('[D] Exportar')
     print('[S] Salir')
+    if navegador.puede_volver():
+        print('[B] Volver atrás')
+    
+    op = pedir_texto('\nSeleccione opcion: ').lower()
+    
+    # Manejar opción de volver
+    if op == 'b' and navegador.puede_volver():
+        return 'volver'
+    
+    return op
 
-def submenu_editar_prueba():
+def submenu_editar_prueba(navegador):
+    """Submenú de edición de pruebas con navegación."""
     while True:
         print('\n--- OPCIONES DE EDICION ---')
         print('[1] Editar prueba (detalles)')
@@ -40,15 +85,23 @@ def submenu_editar_prueba():
         print('[3] Marcar prueba como PAGADA (individual)')
         print('[4] Marcar pruebas como PAGADAS por rango')
         print('[0] Volver')
-        op = pedir_texto('Opcion: ')
+        if navegador.puede_volver():
+            print('[B] Volver atrás')
+        
+        op = pedir_texto('Opcion: ').lower()
+        
+        # Manejar opción de volver
+        if op == 'b' and navegador.puede_volver():
+            return 'volver'
+        
         if op == '1':
-            editar_prueba()
+            editar_prueba(navegador)
         elif op == '2':
-            marcar_no_hecha()
+            marcar_no_hecha(navegador)
         elif op == '3':
-            marcar_pagada()
+            marcar_pagada(navegador)
         elif op == '4':
-            marcar_pagadas_por_rango()
+            marcar_pagadas_por_rango(navegador)
         elif op == '0':
             break
         else:
@@ -57,7 +110,8 @@ def submenu_editar_prueba():
 # -----------------------------
 # [A] Pruebas
 # -----------------------------
-def menu_pruebas():
+def menu_pruebas(navegador):
+    """Menú principal de pruebas con navegación."""
     while True:
         print('\n--- PRUEBAS ---')
         print('[1] Registrar prueba')
@@ -66,25 +120,32 @@ def menu_pruebas():
         print('[4] Buscar pruebas')
         print('[5] Eliminar prueba')
         print('[0] Volver')
-
-        op = pedir_texto('Opcion: ')
-
+        if navegador.puede_volver():
+            print('[B] Volver atrás')
+        
+        op = pedir_texto('Opcion: ').lower()
+        
+        # Manejar opción de volver
+        if op == 'b' and navegador.puede_volver():
+            return 'volver'
+        
         if op == '1':
-            agg_prueba()
+            agg_prueba(navegador)
         elif op == '2':
-            menu_ver_pruebas()
+            menu_ver_pruebas(navegador)
         elif op == '3':
-            submenu_editar_prueba()
+            submenu_editar_prueba(navegador)
         elif op == '4':
-            buscar_pruebas()
+            buscar_pruebas(navegador)
         elif op == '5':
-            opcion_eliminar_prueba()
+            opcion_eliminar_prueba(navegador)
         elif op == '0':
             break
         else:
             print('Opcion invalida.')
 
-def agg_prueba():
+def agg_prueba(navegador):
+    """Registra una nueva prueba."""
     fecha_test = pedir_fecha()
     legajo_numero = pedir_texto('Numero de legajo: ')
     tipo_prueba = pedir_tipo_prueba()
@@ -108,15 +169,22 @@ def agg_prueba():
     except Exception as e:
         print(f"\nOcurrió un error al guardar: {e}")        
 
-def menu_ver_pruebas():
+def menu_ver_pruebas(navegador):
+    """Submenú para ver pruebas."""
     while True:
         print('\n--- VER PRUEBAS ---')
         print('[1] Todas las pruebas')
         print('[2] Solo NO HECHAS')
         print('[0] Volver')
-
-        op = pedir_texto('Opcion: ')
-
+        if navegador.puede_volver():
+            print('[B] Volver atrás')
+        
+        op = pedir_texto('Opcion: ').lower()
+        
+        # Manejar opción de volver
+        if op == 'b' and navegador.puede_volver():
+            return 'volver'
+        
         if op == '1':
             mostrar_pruebas()
         elif op == '2':
@@ -127,6 +195,7 @@ def menu_ver_pruebas():
             print('Opcion invalida.')
 
 def mostrar_pruebas(no_hechas=False):
+    """Muestra lista de pruebas."""
     filtro = "p.estado = 'NO HECHA'" if no_hechas else ""
     filas = buscar_pruebas_dinamico(filtro, ())
 
@@ -144,7 +213,8 @@ def mostrar_pruebas(no_hechas=False):
             f'{f[5]:<7} | {f[6]:<8} | {f[7]}'
         )
 
-def editar_prueba():
+def editar_prueba(navegador):
+    """Edita una prueba específica."""
     print('\n--- EDITAR PRUEBA ---')
     prueba_id = pedir_entero('Ingrese el ID de la prueba a editar: ', 1)
 
@@ -202,17 +272,24 @@ def editar_prueba():
     except Exception as e:
         print(f"Error crítico: {e}")
 
-def buscar_pruebas():
+def buscar_pruebas(navegador):
+    """Busca pruebas según criterios."""
     print('\n--- BUSCAR PRUEBAS ---')
     print('[1] Buscar por ID')
     print('[2] Buscar por fecha')
     print('[3] Buscar por legajo')
     print('[0] Volver')
-
-    op = pedir_texto('Opcion: ')
+    if navegador.puede_volver():
+        print('[B] Volver atrás')
+    
+    op = pedir_texto('Opcion: ').lower()
     filtro = ''
     dato = ()
 
+    # Manejar opción de volver
+    if op == 'b' and navegador.puede_volver():
+        return 'volver'
+    
     if op == '1':
         id_buscado = pedir_entero('Ingrese ID: ', 1)
         filtro = 'p.id = %s'
@@ -243,7 +320,8 @@ def buscar_pruebas():
             fecha_str = str(r[1])
             print(f'{r[0]:<3}| {fecha_str:<10} | {r[2]:<6} | {r[3]:<4} | {r[4]:<{ANCHO_EMPRESA}} | {r[5]:<7} | {r[6]:<8} | {r[7]}')
 
-def opcion_eliminar_prueba():
+def opcion_eliminar_prueba(navegador):
+    """Elimina una prueba con confirmación."""
     mostrar_pruebas()
     prueba_id = pedir_entero('\nIngrese el ID a eliminar: ', 1)
     confirmacion = pedir_texto('Escriba "SI" para confirmar: ').upper()
@@ -261,28 +339,36 @@ def opcion_eliminar_prueba():
 # -----------------------------
 # [A-5] Estados y Pagos
 # -----------------------------
-def menu_estados_pruebas():
+def menu_estados_pruebas(navegador):
+    """Menú de estados y pagos."""
     while True:
         print('\n--- ESTADOS / PAGOS ---')
         print('[1] Marcar prueba como NO HECHA')
         print('[2] Marcar prueba como PAGADA (por legajo)')
         print('[3] Marcar PAGADAS por rango de fechas')
         print('[0] Volver')
-
-        op = pedir_texto('Opcion: ')
-
+        if navegador.puede_volver():
+            print('[B] Volver atrás')
+        
+        op = pedir_texto('Opcion: ').lower()
+        
+        # Manejar opción de volver
+        if op == 'b' and navegador.puede_volver():
+            return 'volver'
+        
         if op == '1':
-            marcar_no_hecha()
+            marcar_no_hecha(navegador)
         elif op == '2':
-            marcar_pagada()
+            marcar_pagada(navegador)
         elif op == '3':
-            marcar_pagadas_por_rango()
+            marcar_pagadas_por_rango(navegador)
         elif op == '0':
             break
         else:
             print('Opcion invalida.')
 
-def marcar_no_hecha():
+def marcar_no_hecha(navegador):
+    """Marca una prueba como NO HECHA."""
     mostrar_pruebas()
     prueba_id = pedir_entero('\nIngrese el ID a marcar como NO HECHA: ', 1)
 
@@ -291,7 +377,8 @@ def marcar_no_hecha():
         cursor.execute('UPDATE pruebas SET estado = %s WHERE id = %s', ('NO HECHA', prueba_id))
     print('\nPrueba marcada como NO HECHA.')
 
-def marcar_pagada():
+def marcar_pagada(navegador):
+    """Marca una prueba como PAGADA por legajo."""
     print('\n--- COBRAR INDIVIDUAL ---')
     legajo = pedir_texto('Ingrese el LEGAJO a marcar como PAGADO: ')
     deuda = db_buscar_deuda_legajo(legajo)
@@ -319,7 +406,8 @@ def marcar_pagada():
     else:
         print('Operación cancelada.') 
 
-def marcar_pagadas_por_rango():
+def marcar_pagadas_por_rango(navegador):
+    """Marca múltiples pruebas como PAGADAS por rango de fechas."""
     print('\n--- COBRAR LOTE (MASIVO) ---')
     empresa_id = elegir_empresa_o_todas()
     print('\nFecha DESDE:')
@@ -342,7 +430,8 @@ def marcar_pagadas_por_rango():
 # -----------------------------
 # [B] Empresas
 # -----------------------------
-def menu_empresas():
+def menu_empresas(navegador):
+    """Menú principal de empresas con navegación."""
     while True:
         print('\n--- EMPRESAS ---')
         print('[1] Cargar empresa')
@@ -350,22 +439,30 @@ def menu_empresas():
         print('[3] Editar empresa')  
         print('[4] Eliminar empresa') 
         print('[0] Volver')
-        op = pedir_texto('Opcion: ')
-
+        if navegador.puede_volver():
+            print('[B] Volver atrás')
+        
+        op = pedir_texto('Opcion: ').lower()
+        
+        # Manejar opción de volver
+        if op == 'b' and navegador.puede_volver():
+            return 'volver'
+        
         if op == '1':
-            cargar_empresa()
+            cargar_empresa(navegador)
         elif op == '2':
             listar_empresas()
         elif op == '3':
-            editar_empresa_ui()       
+            editar_empresa_ui(navegador)       
         elif op == '4':
-            eliminar_empresa_ui()    
+            eliminar_empresa_ui(navegador)    
         elif op == '0':
             break
         else:
             print('Opcion invalida.')
 
-def cargar_empresa():
+def cargar_empresa(navegador):
+    """Carga una nueva empresa."""
     nombre = pedir_texto('Nombre de la empresa: ')
     precio = pedir_entero('Precio por prueba (Gs): ', 1)
     
@@ -375,6 +472,7 @@ def cargar_empresa():
     print('\nEmpresa cargada correctamente.')
 
 def listar_empresas():
+    """Lista todas las empresas."""
     empresas = obtener_todas_empresas()
     if not empresas:
         print('\nError: No hay empresas cargadas.')
@@ -386,7 +484,8 @@ def listar_empresas():
         print(f'{e[0]:<3}| {e[1]:<20} | {e[2]} Gs')
     return empresas
 
-def editar_empresa_ui():
+def editar_empresa_ui(navegador):
+    """Interfaz para editar una empresa."""
     print('\n--- EDITAR EMPRESA ---')
     listar_empresas()
     
@@ -423,7 +522,8 @@ def editar_empresa_ui():
     except Exception as e:
         print(f"Error al actualizar: {e}")
 
-def eliminar_empresa_ui():
+def eliminar_empresa_ui(navegador):
+    """Interfaz para eliminar una empresa."""
     print('\n--- ELIMINAR EMPRESA ---')
     listar_empresas()
     
@@ -454,27 +554,36 @@ def eliminar_empresa_ui():
 # -----------------------------
 # [C] Totales / Reportes
 # -----------------------------
-def menu_totales():
+def menu_totales(navegador):
+    """Menú de totales y reportes con navegación."""
     while True:
         print('\n--- TOTALES / REPORTES ---')
         print('[1] Total del día')
         print('[2] Total por rango de fechas')
         print('[3] Pruebas NO HECHAS (dinero perdido)')
         print('[0] Volver')
-        op = pedir_texto('Opcion: ')
-
+        if navegador.puede_volver():
+            print('[B] Volver atrás')
+        
+        op = pedir_texto('Opcion: ').lower()
+        
+        # Manejar opción de volver
+        if op == 'b' and navegador.puede_volver():
+            return 'volver'
+        
         if op == '1':
-            total_del_dia()
+            total_del_dia(navegador)
         elif op == '2':
-            total_por_rango()
+            total_por_rango(navegador)
         elif op == '3':
-            pruebas_no_hechas_reporte()
+            pruebas_no_hechas_reporte(navegador)
         elif op == '0':
             break
         else:
             print('Opcion invalida.')
 
-def total_del_dia():
+def total_del_dia(navegador):
+    """Muestra total cobrado en un día específico."""
     print('\n--- REPORTE DEL DÍA ---')
     fecha = pedir_fecha()
     empresa_id = elegir_empresa_o_todas()
@@ -482,7 +591,8 @@ def total_del_dia():
     nombre_empresa = "TODAS" if not empresa_id else f"Empresa {empresa_id}"
     print(f'\nTotal cobrado el {fecha} ({nombre_empresa}): {total} Gs')
 
-def total_por_rango():
+def total_por_rango(navegador):
+    """Muestra total cobrado en un rango de fechas."""
     print('\n--- REPORTE POR RANGO ---')
     empresa_id = elegir_empresa_o_todas()
     print('\nFecha DESDE:')
@@ -498,7 +608,8 @@ def total_por_rango():
     nombre_empresa = "TODAS" if not empresa_id else f"Empresa {empresa_id}"
     print(f'\nTotal cobrado desde {fecha_desde} hasta {fecha_hasta} ({nombre_empresa}):\n💰 {total} Gs')
 
-def pruebas_no_hechas_reporte():
+def pruebas_no_hechas_reporte(navegador):
+    """Muestra reporte de pruebas no hechas (dinero perdido)."""
     print('\n--- PRUEBAS NO HECHAS (DINERO PERDIDO) ---')
     empresa_id = elegir_empresa_o_todas()
     print('\nFecha DESDE:')
@@ -530,24 +641,33 @@ def pruebas_no_hechas_reporte():
 # -----------------------------
 # [D] Exportar
 # -----------------------------
-def menu_exportar():
+def menu_exportar(navegador):
+    """Menú de exportación con navegación."""
     while True:
         print('\n--- EXPORTAR ---')
         print('[1] Exportar todo a Excel')
         print('[2] Exportar mes a Excel')
         print('[0] Volver')
-        op = pedir_texto('Opcion: ')
-
+        if navegador.puede_volver():
+            print('[B] Volver atrás')
+        
+        op = pedir_texto('Opcion: ').lower()
+        
+        # Manejar opción de volver
+        if op == 'b' and navegador.puede_volver():
+            return 'volver'
+        
         if op == '1':
-            exportar_excel()
+            exportar_excel(navegador)
         elif op == '2':
-            exportar_excel_mes()
+            exportar_excel_mes(navegador)
         elif op == '0':
             break
         else:
             print('Opcion invalida.')
 
-def exportar_excel():
+def exportar_excel(navegador):
+    """Exporta todos los datos a Excel."""
     import pandas as pd
     print("Generando reporte completo...")
     columnas, filas = db_obtener_datos_exportacion_todo()
@@ -566,47 +686,4 @@ def exportar_excel():
     df.to_excel(archivo, index=False)
     print(f'\nArchivo Excel generado correctamente.\n{archivo}')
 
-def exportar_excel_mes():
-    import pandas as pd
-    print('\n--- EXPORTAR EXCEL POR RANGO ---')
-    print('\nFecha DESDE:')
-    fecha_desde = pedir_fecha()
-    print('\nFecha HASTA:')
-    fecha_hasta = pedir_fecha()
-    empresa_id = elegir_empresa_o_todas()
-    print("Consultando base de datos...")
 
-    columnas, filas = db_obtener_datos_exportacion_rango(fecha_desde, fecha_hasta, empresa_id)
-
-    if not filas:
-        print('\nNo hay datos para exportar en ese período.')
-        return
-
-    df = pd.DataFrame(filas, columns=columnas)
-
-    base_dir = Path(__file__).resolve().parent.parent
-    export_dir = base_dir / 'exports'
-    export_dir.mkdir(exist_ok=True)
-    nombre_empresa = 'todas' if not empresa_id else f'empresa_{empresa_id}'
-    archivo = export_dir / f'pruebas_{nombre_empresa}_{fecha_desde}_a_{fecha_hasta}.xlsx'
-    df.to_excel(archivo, index=False)
-    print(f'\nExcel generado correctamente:\n{archivo}')
-
-# --- Start ---
-def run():
-    while True:
-        mostrar_menu()
-        option = pedir_texto('\nSeleccione opcion: ').lower()
-        if option == 's':
-            print('\nSaliendo del programa...')
-            break
-        elif option == 'a':
-            menu_pruebas()
-        elif option == 'b':
-            menu_empresas()
-        elif option == 'c':
-            menu_totales()
-        elif option == 'd':
-            menu_exportar()
-        else:
-            print('Opcion invalida.')
