@@ -1,18 +1,16 @@
 # src/app.py
-from pathlib import Path
-
 from .database import (
     crear_tablas, agregar_pruebas, obtener_precio_empresa, obtener_todas_empresas, 
     eliminar_prueba, buscar_pruebas_dinamico, actualizar_prueba, 
     db_calcular_total_cobrado, db_obtener_pruebas_perdidas, 
     db_buscar_deuda_legajo, db_marcar_pagado_individual, db_marcar_pagado_masivo,
-    db_obtener_datos_exportacion_todo, db_obtener_datos_exportacion_rango, 
     obtener_empresa_por_id, actualizar_empresa, eliminar_empresa
 )
 from .utils import (
     pedir_texto, pedir_entero, pedir_fecha, pedir_tipo_prueba,
     ANCHO_EMPRESA, LINEA
 )
+from .export import exportar_excel, exportar_excel_mes
 
 
 # -----------------------------
@@ -666,24 +664,5 @@ def menu_exportar(navegador):
         else:
             print('Opcion invalida.')
 
-def exportar_excel(navegador):
-    """Exporta todos los datos a Excel."""
-    import pandas as pd
-    print("Generando reporte completo...")
-    columnas, filas = db_obtener_datos_exportacion_todo()
-
-    if not filas:
-        print('\nNo hay datos para exportar.')
-        return
-    
-    df = pd.DataFrame(filas, columns=columnas)
-    
-    # Path logic: como app.py está en src/, subimos DOS niveles (..) para llegar a la raíz
-    base_dir = Path(__file__).resolve().parent.parent
-    export_dir = base_dir / 'exports'
-    export_dir.mkdir(exist_ok=True)
-    archivo = export_dir / 'pruebas_poligraficas_completo.xlsx'
-    df.to_excel(archivo, index=False)
-    print(f'\nArchivo Excel generado correctamente.\n{archivo}')
 
 
