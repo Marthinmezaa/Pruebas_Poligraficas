@@ -2,11 +2,11 @@
 from pathlib import Path
 
 from .database import (
-    crear_tablas, agregar_pruebas, obtener_precio_empresa, obtener_todas_empresas, 
-    eliminar_prueba, buscar_pruebas_dinamico, actualizar_prueba, 
-    db_calcular_total_cobrado, db_obtener_pruebas_perdidas, 
+    crear_tablas, agregar_pruebas, obtener_precio_empresa, obtener_todas_empresas,
+    eliminar_prueba, buscar_pruebas_dinamico, actualizar_prueba,
+    db_calcular_total_cobrado, db_obtener_pruebas_perdidas,
     db_buscar_deuda_legajo, db_marcar_pagado_individual, db_marcar_pagado_masivo,
-    db_obtener_datos_exportacion_todo, db_obtener_datos_exportacion_rango, 
+    db_obtener_datos_exportacion_todo, db_obtener_datos_exportacion_rango,
     obtener_empresa_por_id, actualizar_empresa, eliminar_empresa
 )
 from .utils import (
@@ -686,4 +686,60 @@ def exportar_excel(navegador):
     df.to_excel(archivo, index=False)
     print(f'\nArchivo Excel generado correctamente.\n{archivo}')
 
+def exportar_excel_mes(navegador):
+    """Exporta datos de un mes específico a Excel."""
+    import pandas as pd
+    print('\n--- EXPORTAR MES ---')
+    print('Seleccione el mes a exportar:')
+    mes = pedir_entero('Número de mes (1-12): ', 1, 12)
+    anio = pedir_entero('Año (ej. 2025): ', 1900, 2100)
+    
+    print(f"Generando reporte del mes {mes}/{anio}...")
+    columnas, filas = db_obtener_datos_exportacion_rango(mes, anio)
 
+    if not filas:
+        print('\nNo hay datos para exportar en ese período.')
+        return
+    
+    df = pd.DataFrame(filas, columns=columnas)
+    
+    base_dir = Path(__file__).resolve().parent.parent
+    export_dir = base_dir / 'exports'
+    export_dir.mkdir(exist_ok=True)
+    archivo = export_dir / f'pruebas_poligraficas_{anio}-{mes:02d}.xlsx'
+    df.to_excel(archivo, index=False)
+    print(f'\nArchivo Excel generado correctamente.\n{archivo}')
+
+def run():
+    """Función principal que inicia la aplicación."""
+    navegador = Navegador()
+    
+    while True:
+        opcion = mostrar_menu(navegador)
+        
+        if opcion == 'volver':
+            if navegador.puede_volver():
+                navegador.pop()
+            continue
+            
+        if opcion == 's':
+            print('\n¡Hasta luego!')
+            break
+            
+        if opcion == 'a':
+            navegador.push(menu_pruebas)
+            menu_pruebas(navegador)
+        elif opcion == 'b':
+            navegador.push(menu_empresas)
+            menu_empresas(navegador)
+        elif opcion == 'c':
+            navegador.push(menu_totales)
+            menu_totales(navegador)
+        elif opcion == 'd':
+            navegador.push(menu_exportar)
+            menu_exportar(navegador)
+        else:
+            print('Opción inválida.')
+
+if __name__ == '__main__':
+    run()
