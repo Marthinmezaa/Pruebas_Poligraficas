@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.2](https://github.com/Marthinmezaa/Pruebas_Poligraficas/compare/v1.0.1...v1.0.2) (2026-03-19)
+
+
+### Bug Fixes
+
+* resolver errores de importacion y actualizar navegacion ([ba98b9a](https://github.com/Marthinmezaa/Pruebas_Poligraficas/commit/ba98b9ac407e1fb6a072a5ee6d2be776e5acea6c))
+* resolver errores de importacion y actualizar navegacion ([bdac11e](https://github.com/Marthinmezaa/Pruebas_Poligraficas/commit/bdac11ee66e6cbd39aa94e9aa1ddfcb2e06e24b5))
+
 ## [1.0.1](https://github.com/Marthinmezaa/Pruebas_Poligraficas/compare/v1.0.0...v1.0.1) (2026-03-19)
 
 
