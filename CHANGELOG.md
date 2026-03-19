@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.0.1](https://github.com/Marthinmezaa/Pruebas_Poligraficas/compare/v1.0.0...v1.0.1) (2026-03-19)
+
+
+### Bug Fixes
+
+* solucionar error de arranque en run.py ([3e9bf9f](https://github.com/Marthinmezaa/Pruebas_Poligraficas/commit/3e9bf9fa3558d075450a5c801c9fd2a95b0e2a13))
+* solucionar error de arranque en run.py ([c4811fe](https://github.com/Marthinmezaa/Pruebas_Poligraficas/commit/c4811fec3050f5142dfdae3d8090d972b45fa917))
+
 ## 1.0.0 (2026-03-17)
 
 
