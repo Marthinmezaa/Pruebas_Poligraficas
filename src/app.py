@@ -1,10 +1,13 @@
 # src/app.py
+from pathlib import Path
+
 from .database import (
     crear_tablas, agregar_pruebas, obtener_precio_empresa, obtener_todas_empresas,
     eliminar_prueba, buscar_pruebas_dinamico, actualizar_prueba,
     db_calcular_total_cobrado, db_obtener_pruebas_perdidas,
     db_buscar_deuda_legajo, db_marcar_pagado_individual, db_marcar_pagado_masivo,
-    obtener_empresa_por_id, actualizar_empresa, eliminar_empresa
+    obtener_empresa_por_id, actualizar_empresa, eliminar_empresa,
+    db_obtener_datos_exportacion_rango
 )
 from .utils import (
     pedir_texto, pedir_entero, pedir_fecha, pedir_tipo_prueba,
@@ -63,9 +66,6 @@ def mostrar_menu(navegador):
     print('[C] Totales / Reportes')
     print('[D] Exportar')
     print('[S] Salir')
-    if navegador.puede_volver():
-        print('[B] Volver atrás')
-    
     op = pedir_texto('\nSeleccione opcion: ').lower()
     
     # Manejar opción de volver
@@ -83,9 +83,6 @@ def submenu_editar_prueba(navegador):
         print('[3] Marcar prueba como PAGADA (individual)')
         print('[4] Marcar pruebas como PAGADAS por rango')
         print('[0] Volver')
-        if navegador.puede_volver():
-            print('[B] Volver atrás')
-        
         op = pedir_texto('Opcion: ').lower()
         
         # Manejar opción de volver
@@ -118,9 +115,6 @@ def menu_pruebas(navegador):
         print('[4] Buscar pruebas')
         print('[5] Eliminar prueba')
         print('[0] Volver')
-        if navegador.puede_volver():
-            print('[B] Volver atrás')
-        
         op = pedir_texto('Opcion: ').lower()
         
         # Manejar opción de volver
@@ -174,9 +168,6 @@ def menu_ver_pruebas(navegador):
         print('[1] Todas las pruebas')
         print('[2] Solo NO HECHAS')
         print('[0] Volver')
-        if navegador.puede_volver():
-            print('[B] Volver atrás')
-        
         op = pedir_texto('Opcion: ').lower()
         
         # Manejar opción de volver
@@ -277,9 +268,6 @@ def buscar_pruebas(navegador):
     print('[2] Buscar por fecha')
     print('[3] Buscar por legajo')
     print('[0] Volver')
-    if navegador.puede_volver():
-        print('[B] Volver atrás')
-    
     op = pedir_texto('Opcion: ').lower()
     filtro = ''
     dato = ()
@@ -345,9 +333,6 @@ def menu_estados_pruebas(navegador):
         print('[2] Marcar prueba como PAGADA (por legajo)')
         print('[3] Marcar PAGADAS por rango de fechas')
         print('[0] Volver')
-        if navegador.puede_volver():
-            print('[B] Volver atrás')
-        
         op = pedir_texto('Opcion: ').lower()
         
         # Manejar opción de volver
@@ -437,9 +422,6 @@ def menu_empresas(navegador):
         print('[3] Editar empresa')  
         print('[4] Eliminar empresa') 
         print('[0] Volver')
-        if navegador.puede_volver():
-            print('[B] Volver atrás')
-        
         op = pedir_texto('Opcion: ').lower()
         
         # Manejar opción de volver
@@ -560,9 +542,6 @@ def menu_totales(navegador):
         print('[2] Total por rango de fechas')
         print('[3] Pruebas NO HECHAS (dinero perdido)')
         print('[0] Volver')
-        if navegador.puede_volver():
-            print('[B] Volver atrás')
-        
         op = pedir_texto('Opcion: ').lower()
         
         # Manejar opción de volver
@@ -646,9 +625,6 @@ def menu_exportar(navegador):
         print('[1] Exportar todo a Excel')
         print('[2] Exportar mes a Excel')
         print('[0] Volver')
-        if navegador.puede_volver():
-            print('[B] Volver atrás')
-        
         op = pedir_texto('Opcion: ').lower()
         
         # Manejar opción de volver
